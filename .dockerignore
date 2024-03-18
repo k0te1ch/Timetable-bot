@@ -1,9 +1,5 @@
 # Files
-test.py
 database.sqlite
-files/
-migrations/
-tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

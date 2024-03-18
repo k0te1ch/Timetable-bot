@@ -1,0 +1,2 @@
+def shutdownBot():
+    exit()

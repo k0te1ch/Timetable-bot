@@ -96,7 +96,7 @@ class _NoneModule(object):
 
 
 # GET TG BOT OBJECT
-def _get_bot_obj():
+def _get_bot_obj() -> Bot:
     from config import TG_SERVER, LOCAL
     #TODO CHECK THIS
     if TG_SERVER == None and LOCAL:

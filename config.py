@@ -70,8 +70,8 @@ LANGUAGES = json.loads(os.getenv("LANGUAGES"))
 
 
 # SOURCES
-SRC_PATH = os.path.dirname(os.path.realpath(__file__))
+SRC_PATH = Path(__file__).parent
 TIMETABLE_FILENAME = os.getenv("TIMETABLE_FILENAME")
 
-FILES_PATH = f"{SRC_PATH}/{os.getenv('FILES_PATH')}"
-TIMETABLE_PATH = f"{FILES_PATH}/{TIMETABLE_FILENAME}"
+FILES_PATH = SRC_PATH / os.getenv("FILES_PATH")
+TIMETABLE_PATH = FILES_PATH / TIMETABLE_FILENAME

@@ -22,9 +22,9 @@ apscheduler = "^3.10.4"
 
 
 [tool.poetry.group.testing.dependencies]
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.1"
-aiogram-tests = {git = "https://github.com/555Russich/aiogram_tests"}
+pytest = "^8.1.1"
+pytest-asyncio = "^0.23.6"
+aiogram-tests = {git = "https://github.com/k0te1ch/aiogram_tests", branch = "dev"}
 responses = "^0.23.1"
 
 

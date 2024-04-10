@@ -3,7 +3,6 @@ test.py
 database.sqlite
 files/
 migrations/
-tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -34,6 +33,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 logs/
+.idea/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

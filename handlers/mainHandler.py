@@ -34,8 +34,10 @@ async def menu(msg: Message, username: str, state: FSMContext) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/menu</b> command")
 
     keyboard = InlineKeyboardBuilder()
-    keyboard.row(InlineKeyboardButton(text="Расписание на сегодня", callback_data="timetable_today"))
-    keyboard.row(InlineKeyboardButton(text="Расписание на завтра", callback_data="timetable_nextday"))
+    keyboard.row(InlineKeyboardButton(text="На сегодня", callback_data="timetable_today"))
+    keyboard.row(InlineKeyboardButton(text="На завтра", callback_data="timetable_nextday"))
+    keyboard.row(InlineKeyboardButton(text="На текущую неделю", callback_data="timetable_current_week"))
+    keyboard.row(InlineKeyboardButton(text="На следующую неделю", callback_data="timetable_next_week"))
     keyboard.row(InlineKeyboardButton(text="Настройки", callback_data="settings"))
     await msg.answer("Меню", reply_markup=keyboard.as_markup())
 
@@ -83,6 +85,7 @@ async def timetableForDay(callback: CallbackQuery, username: str) -> None:
     session.close()
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
+
     import locale
 
     locale.setlocale(locale.LC_ALL, "ru")  # TODO исправить ёбаный костыль!

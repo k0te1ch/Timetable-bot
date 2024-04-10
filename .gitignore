@@ -1,4 +1,6 @@
 # Files
+utils/table.py
+actions-runner/
 test.py
 database.sqlite
 files/

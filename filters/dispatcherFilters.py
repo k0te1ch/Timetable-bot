@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from aiogram.enums import ChatType
 from aiogram.types import Message
 
@@ -40,27 +38,27 @@ def IsAdmin(m) -> bool:
     This filter checks whether the user is an administrator (in the list of administrators in the settings)
     :return: bool
     """
-    return (m.from_user.username in ADMINS)
+    return m.from_user.username in ADMINS
 
 
-def ContextButton(context_key: Union[str, list], classes: list = LANGUAGES):
+def ContextButton(context_key: str | list, classes: list = LANGUAGES):
     """
     This filter checks button's text when have a multi-language context
     example: ContextButton("cancel", ["ru", "en"])
     """
 
-    def inner(m) -> Optional[bool]:
+    def inner(m) -> bool | None:
         if not (isinstance(m, Message) and m.text):
             return
 
         for cls in classes:
-            if type(context_key) == str:
+            if isinstance(context_key, str):
                 contexts = [context_key]
             else:
                 contexts = context_key
             for context1 in contexts:
                 attr = getattr(context[cls], context1)
-                if type(attr) == list:
+                if isinstance(attr, list):
                     for i in attr:
                         if m.text == i:
                             return True

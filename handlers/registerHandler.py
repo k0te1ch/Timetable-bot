@@ -1,15 +1,14 @@
 from aiogram import F, Router
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
-from loguru import logger
+from aiogram.types import CallbackQuery, InlineKeyboardButton, Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardButton
+from loguru import logger
+
+from filters.dispatcherFilters import IsPrivate
 from forms.register import Register
 from utils.context import context
-from filters.dispatcherFilters import IsPrivate
 from utils.ScheduleParser import scheduleParser
-
 
 router = Router(name="registerHandler")
 router.message.filter(IsPrivate)
@@ -46,13 +45,11 @@ async def cancel(callback: CallbackQuery, state: FSMContext, language: str, user
 
 
 @router.callback_query(F.data.contains("course_"), Register.course)
-async def getCourse(
-    callback: CallbackQuery, state: FSMContext, username: str
-) -> None:
-    
+async def getCourse(callback: CallbackQuery, state: FSMContext, username: str) -> None:
+
     await state.set_state(Register.direction)
     tableObj = (await state.get_data())["tableObj"]
-    course = list(tableObj.keys())[int(callback.data[len("course_"):])]
+    course = list(tableObj.keys())[int(callback.data[len("course_") :])]
     tableObj = tableObj[course]
     await state.update_data(course=course)
     keyboard = InlineKeyboardBuilder()
@@ -67,14 +64,13 @@ async def getCourse(
 
 
 @router.callback_query(F.data.contains("direction_"), Register.direction)
-async def getDirection(callback: CallbackQuery, state: FSMContext, username: str
-) -> None:
+async def getDirection(callback: CallbackQuery, state: FSMContext, username: str) -> None:
 
     await state.set_state(Register.profile)
     tableObj = (await state.get_data())["tableObj"]
     direction = list(tableObj.keys())[int(callback.data[len("direction_") :])]
     tableObj = tableObj[direction]
-    await state.update_data(direction = direction)
+    await state.update_data(direction=direction)
     keyboard = InlineKeyboardBuilder()
     await state.update_data(tableObj=tableObj)
     for num, key in enumerate(tableObj.keys()):
@@ -87,9 +83,7 @@ async def getDirection(callback: CallbackQuery, state: FSMContext, username: str
 
 
 @router.callback_query(F.data.contains("profile_"), Register.profile)
-async def getProfile(
-    callback: CallbackQuery, state: FSMContext, username: str
-) -> None:
+async def getProfile(callback: CallbackQuery, state: FSMContext, username: str) -> None:
     await state.set_state(Register.group)
     tableObj = (await state.get_data())["tableObj"]
     profile = list(tableObj.keys())[int(callback.data[len("profile_") :])]
@@ -107,8 +101,7 @@ async def getProfile(
 
 
 @router.callback_query(F.data.contains("group_"), Register.group)
-async def getGroup(callback: CallbackQuery, state: FSMContext, username: str
-) -> None:
+async def getGroup(callback: CallbackQuery, state: FSMContext, username: str) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get group")
     info: dict[str] = await state.get_data()
     from models.user import User
@@ -121,7 +114,7 @@ async def getGroup(callback: CallbackQuery, state: FSMContext, username: str
         course=info["course"],
         direction=info["direction"],
         profile=info["profile"],
-        group=list(info["tableObj"].keys())[int(callback.data[len("group_"):])],
+        group=list(info["tableObj"].keys())[int(callback.data[len("group_") :])],
     )
 
     session = db.session()
@@ -134,12 +127,11 @@ async def getGroup(callback: CallbackQuery, state: FSMContext, username: str
         # Подтверждаем изменения (выполняем коммит)
         session.commit()
         from handlers.mainHandler import menuCallback
+
         session.close()
         await state.clear()
-        await callback.answer(
-            "Вы успешно зарегистрированы!"
-        )
-        return await menuCallback(callback, username, state, anotherHandler = True)  # TODO костыль
+        await callback.answer("Вы успешно зарегистрированы!")
+        return await menuCallback(callback, username, state, anotherHandler=True)  # TODO костыль
     await callback.answer("Вы уже зарегистрированы!")
     # Закрываем сессию
     session.close()

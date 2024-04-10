@@ -1,6 +1,7 @@
 # TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from utils.context import context
 
 # TODO Когда загружается бот, если кнопки используются, то мы их создаём и храним в памяти
@@ -38,7 +39,5 @@ class en:
     for i in context[lang].bot_commands:
         bot_commands.add(InlineKeyboardButton(text=i[0], callback_data=i[1]))
     bot_commands.adjust(4)
-    bot_commands.add(
-        InlineKeyboardButton(text=context[lang].back, callback_data="admin_back")
-    )
+    bot_commands.add(InlineKeyboardButton(text=context[lang].back, callback_data="admin_back"))
     bot_commands = bot_commands.as_markup()

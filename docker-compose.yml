@@ -1,0 +1,35 @@
+# IN PROCESS
+
+version: '3.7'
+
+services:
+  aiogram-bot:
+    image: bot
+    stop_signal: SIGINT
+    restart: always
+    build: .
+    volumes:
+      - .env:/app/.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50'
+        max-file: '4'
+    command: >
+      bash -c "alembic upgrade head && python bot.py"
+    depends_on:
+      - postgres
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      # Path to directory with redis.conf file
+      - "/home/user/casino-bot-redis/redis_config:/usr/local/etc/redis"
+      # Path to Redis dumps directory
+      - "/home/user/casino-bot-redis/redis_data:/data"
+    command: "redis-server /usr/local/etc/redis/redis.conf"
+    healthcheck:
+        test: [ "CMD", "redis-cli","ping" ]
+  postgresql:
+      image: postgresql:latest
+      restart: always

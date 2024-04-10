@@ -16,7 +16,8 @@ run-runner:
 	cd $(BASEDIR)/actions-runner && run.cmd
 
 test:
-	poetry run pytest
+	poetry run pytest --cov=.
+	#TODO edit
 
 check:
 	poetry run pre-commit run --show-diff-on-failure --color=always --all-files

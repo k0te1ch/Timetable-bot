@@ -1,4 +1,4 @@
-from sqlalchemy import String, Column, BigInteger
+from sqlalchemy import BigInteger, Column, String
 
 from bot import db
 

@@ -1,19 +1,17 @@
-#TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
+# TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 import asyncio
-import os
-import bot
-import click
 import importlib
+import os
 from datetime import datetime
 
-from alembic.config import Config
+import click
 from alembic import command as alembic
+from alembic.config import Config
 from alembic.util.exc import CommandError
-
-from config import DATABASE_URL, SKIP_UPDATES, \
-    MODELS_DIR, ENABLE_APSCHEDULER
-
 from loguru import logger
+
+import bot
+from config import DATABASE_URL, ENABLE_APSCHEDULER, MODELS_DIR, SKIP_UPDATES
 
 
 @logger.catch
@@ -21,15 +19,15 @@ def get_alembic_conf():
     alembic_cfg = Config()
     alembic_cfg.set_main_option("script_location", "migrations")
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
-    alembic_cfg.config_file_name = os.path.join("migrations", 'alembic.ini')
-    if os.path.isdir('migrations') is False:
+    alembic_cfg.config_file_name = os.path.join("migrations", "alembic.ini")
+    if os.path.isdir("migrations") is False:
         logger.opt(colors=True).info("<light-blue>Initiating alembic...</light-blue>")
-        alembic.init(alembic_cfg, 'migrations')
-        with open('migrations/env.py', 'r+') as f:
+        alembic.init(alembic_cfg, "migrations")
+        with open("migrations/env.py", "r+") as f:
             content = f.read()
             content = content.replace(
-                'target_metadata = None',
-                f'from {bot.MAIN_MODULE_NAME} import db\ntarget_metadata = db.metadata')
+                "target_metadata = None", f"from {bot.MAIN_MODULE_NAME} import db\ntarget_metadata = db.metadata"
+            )
             f.seek(0)
             f.write(content)
 
@@ -44,15 +42,11 @@ def set_bot_properties():
     for prop, val in _:
         setattr(bot.bot, prop, val)
 
+
 # CLI COMMANDS
 class CliGroup(click.Group):
     def list_commands(self, ctx):
-        return [
-            "showmigrations",
-            "makemigrations",
-            "migrate",
-            "run"
-        ]
+        return ["showmigrations", "makemigrations", "migrate", "run"]
 
 
 @click.group(cls=CliGroup)
@@ -69,11 +63,22 @@ async def _run():
 
     if ENABLE_APSCHEDULER is True:
         bot.scheduler.start()
+        # TODO добавить в scheduler задачу проверку на обновления расписания
         logger.success("Scheduler started!")
 
+    # Добавляем команды в бота
+    from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
+
+    await bot.bot.set_my_commands(
+        commands=[
+            BotCommand(command="start", description="Команда для регистрация в боте"),
+            BotCommand(command="menu", description="Команда для вызова меню"),
+        ],
+        scope=BotCommandScopeAllPrivateChats(),
+    )
     logger.success("Bot polling started!")
     await bot.dp.start_polling(bot.bot, skip_updates=SKIP_UPDATES)
-    
+
 
 @cli.command()
 @logger.catch
@@ -81,10 +86,9 @@ def run():
     asyncio.run(_run())
 
 
-
 @logger.catch
 @cli.command()
-@click.option('--verbose', default=False, is_flag=True)
+@click.option("--verbose", default=False, is_flag=True)
 def showmigrations(verbose):
     cfg = get_alembic_conf()
     history = alembic.history(cfg, verbose=verbose)
@@ -92,44 +96,48 @@ def showmigrations(verbose):
 
 
 @cli.command()
-@click.option('-m', '--message', default=None)
+@click.option("-m", "--message", default=None)
 def makemigrations(message):
     if message is None:
-        logger.opt(colors=True).info("<y>Optinal: User -m <msg, --message=\<msg\> to give a message string to this migrate script</y>")
+        logger.opt(colors=True).info(
+            r"<y>Optinal: User -m <msg, --message=\<msg\> to give a message string to this migrate script</y>"
+        )
         message = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
     models = [m[:-3] for m in os.listdir(MODELS_DIR) if m.endswith(".py")]
     logger.opt(colors=True).info(f"Loading <y>{len(models)}</y> models")
     for model in models:
         try:
-            importlib.import_module(f'{MODELS_DIR}.{model}')
+            importlib.import_module(f"{MODELS_DIR}.{model}")
             logger.opt(colors=True).info(f"Loading <y>{model}</y>...   <light-green>loaded</light-green>")
         except ImportError:
             logger.opt(colors=True).exception(f"Loading <y>{model}</y>...   <light-red>error</light-red>")
 
     try:
         cfg = get_alembic_conf()
-        alembic.revision(config=cfg,
-                         message=message,
-                         autogenerate=True,
-                         sql=False,
-                         head="head",
-                         splice=False,
-                         branch_label=None,
-                         version_path=None,
-                         rev_id=None)
+        alembic.revision(
+            config=cfg,
+            message=message,
+            autogenerate=True,
+            sql=False,
+            head="head",
+            splice=False,
+            branch_label=None,
+            version_path=None,
+            rev_id=None,
+        )
         logger.debug("Alembic revisior")
     except CommandError as err:
         logger.exception("Alembic Command Error")
 
         if str(err) == "Target database is not up to date.":
-            logger.opt(colors=True).info("<y>run \"python bot.py migrate\"</y>")
+            logger.opt(colors=True).info('<y>run "python bot.py migrate"</y>')
 
 
 @logger.catch
 @cli.command()
-@click.option('-r', '--revision', default="head")
-@click.option('--upgrade/--downgrade', default=True, help="Default is upgrade")
+@click.option("-r", "--revision", default="head")
+@click.option("--upgrade/--downgrade", default=True, help="Default is upgrade")
 def migrate(revision, upgrade):
     cfg = get_alembic_conf()
     if upgrade is True:

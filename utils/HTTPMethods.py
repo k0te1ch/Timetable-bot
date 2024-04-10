@@ -27,6 +27,7 @@ async def downloadFileBot(url: str, filename: str, chunkSize: int = 65536) -> No
     """
     logger.opt(colors=True).debug(f"The file started downloading <y>({filename})</y>")
     from bot import bot
+
     session = await bot.get_session()
     async with session.get(
         url,
@@ -53,11 +54,9 @@ def downloadFile(url: str, filename: str, chunkSize: int = 65536) -> None:
     :return: None
     """
     import requests
+
     logger.opt(colors=True).debug(f"The file started downloading <y>({filename})</y>")
-    with requests.get(
-        url,
-        stream=True
-    ) as response:
+    with requests.get(url, stream=True) as response:
         response.raise_for_status()
         with open(filename, "wb") as file:
             for chunk in response.iter_content(chunk_size=chunkSize):

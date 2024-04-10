@@ -1,24 +1,25 @@
 # TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 import json
-from pytz import timezone
 import os
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
+from pytz import timezone
 
-env_path = Path('.')/'.env'
+env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
-def getEnvBool(env_name: str) -> Optional[bool]:
+
+def getEnvBool(env_name: str) -> bool | None:
     env_val = os.getenv(env_name)
-    if type(env_val) != str or not env_val.lower() in ["true", "false", "1", "0"]:
+    if isinstance(env_val, str) or not env_val.lower() in ["true", "false", "1", "0"]:
         return None
-    
+
     if env_val in ["1", "0"]:
         return bool(int(env_val))
 
     return env_val.lower() == "true"
+
 
 # BOT SETTINGS
 CS_URL = os.getenv("CS_URL")
@@ -60,7 +61,7 @@ CONTEXT_FILE = os.getenv("CONTEXT_FILE")
 
 ENABLE_APSCHEDULER = os.getenv("ENABLE_APSCHEDULER")
 
-ADMINS = json.loads(os.getenv('ADMINS'))
+ADMINS = json.loads(os.getenv("ADMINS"))
 
 HANDLERS = json.loads(os.getenv("HANDLERS"))
 

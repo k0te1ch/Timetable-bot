@@ -1,11 +1,12 @@
-import re
 import copy
-
-import requests
+import re
 from collections import OrderedDict
+
 import openpyxl
+import requests
 from lxml import etree
 from lxml.etree import ParserError
+
 from config import CS_URL, TIMETABLE_PATH
 
 # TODO add logging
@@ -16,6 +17,7 @@ from config import CS_URL, TIMETABLE_PATH
 # TODO Поиск преподавателей в определённый день
 # TODO получать числитель/знаменатель через внутренний календарь
 # TODO если целый день один и тот же предмет (военка например) -> Целый день: %предмет%
+
 
 class ScheduleParser:
     """
@@ -37,9 +39,12 @@ class ScheduleParser:
             dom = etree.HTML(requests.get(CS_URL).content, parser)
         except ParserError as e:
             print(e)
-        idTable = re.findall("\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
+        idTable = re.findall(r"\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
         from utils.HTTPMethods import downloadFile
-        downloadFile(f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH)
+
+        downloadFile(
+            f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH
+        )
         return TIMETABLE_PATH
 
     def _parse(self, filename):
@@ -72,7 +77,7 @@ class ScheduleParser:
         for r in range(maxRows):
             remove = True
             for c in range(maxCols):
-                if not table_list[r][c] in ["None", ""]:
+                if table_list[r][c] not in ["None", ""]:
                     remove = False
                     break
             if remove:
@@ -97,36 +102,34 @@ class ScheduleParser:
                 subject = table[d][i].strip()
 
                 regular = re.findall(
-                    "(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
+                    r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
                     subject,
                 )
                 if len(regular) > 0:
                     _, rank, teacher, audience = regular[0]  # TODO subject
                     self._audiences.add(audience)
-                regular = re.findall("(.*?) (.*?) (\d+\S)$", subject)
+                regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
                 if len(regular) > 0:
                     _, teacher, audience = regular[0]  # TODO subject
                     self._audiences.add(audience)
                 key = "Числитель" if numerator else "Знаменатель"
-                if not day in timetable[key]:
+                if day not in timetable[key]:
                     timetable[key][day] = OrderedDict()
-                if not time in timetable[key][day]:
+                if time not in timetable[key][day]:
                     timetable[key][day][time] = subject
                 numerator = not numerator
 
-            if not course in objects:
+            if course not in objects:
                 objects[course] = OrderedDict()
-            if not direction in objects[course]:
+            if direction not in objects[course]:
                 objects[course][direction] = OrderedDict()
-            if not profile in objects[course][direction]:
+            if profile not in objects[course][direction]:
                 objects[course][direction][profile] = OrderedDict()
             if group in objects[course][direction][profile]:
-                objects[course][direction][profile][
-                    re.sub("(\d+)", lambda x: f"{x.group()}.1", group)
-                ] = objects[course][direction][profile].pop(group)
-                objects[course][direction][profile][
-                    re.sub("(\d+)", lambda x: f"{x.group()}.2", group)
-                ] = timetable
+                objects[course][direction][profile][re.sub(r"(\d+)", lambda x: f"{x.group()}.1", group)] = objects[
+                    course
+                ][direction][profile].pop(group)
+                objects[course][direction][profile][re.sub(r"(\d+)", lambda x: f"{x.group()}.2", group)] = timetable
             else:
                 objects[course][direction][profile][group] = timetable
 
@@ -150,10 +153,7 @@ class ScheduleParser:
                 return ""
 
         # Проверка на выходной
-        if (
-            all(subject == "None" for subject in tempObj.values())
-            or day == "Воскресенье"
-        ):
+        if all(subject == "None" for subject in tempObj.values()) or day == "Воскресенье":
             return daySchedule + "\nВыходной!"
 
         # Удаление лишних значений "None" в начале и в конце расписания
@@ -176,9 +176,7 @@ class ScheduleParser:
     def getFreeAudiences(self, day, time, numerator):
         if len(self._freeAudiences) == 0:
             self._makeFreeAudiences()
-        return "Вот список свободных аудиторий: " + ", ".join(
-            self._freeAudiences[day][time][numerator]
-        )
+        return "Вот список свободных аудиторий: " + ", ".join(self._freeAudiences[day][time][numerator])
 
     def _makeFreeAudiences(self):  # TODO Сделать через таблицу
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
@@ -196,42 +194,22 @@ class ScheduleParser:
                                             if numerator in freeAudiences[day][time]:
                                                 audience = "-1"
                                                 regular = re.findall(
-                                                    "(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
+                                                    r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
                                                     subject,
                                                 )
                                                 if len(regular) > 0:
-                                                    _, rank, teacher, audience = (
-                                                        regular[0]
-                                                    )
-                                                    if (
-                                                        audience
-                                                        in freeAudiences[day][time][
-                                                            numerator
-                                                        ]
-                                                    ):
-                                                        freeAudiences[day][time][
-                                                            numerator
-                                                        ].remove(audience)
+                                                    _, rank, teacher, audience = regular[0]
+                                                    if audience in freeAudiences[day][time][numerator]:
+                                                        freeAudiences[day][time][numerator].remove(audience)
                                                     continue
-                                                regular = re.findall(
-                                                    "(.*?) (.*?) (\d+\S)$", subject
-                                                )
+                                                regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
                                                 if len(regular) > 0:
                                                     _, teacher, audience = regular[0]
-                                                    if (
-                                                        audience
-                                                        in freeAudiences[day][time][
-                                                            numerator
-                                                        ]
-                                                    ):
-                                                        freeAudiences[day][time][
-                                                            numerator
-                                                        ].remove(audience)
+                                                    if audience in freeAudiences[day][time][numerator]:
+                                                        freeAudiences[day][time][numerator].remove(audience)
                                                     continue
                                             else:
-                                                freeAudiences[day][time][numerator] = (
-                                                    copy.copy(self._audiences)
-                                                )
+                                                freeAudiences[day][time][numerator] = copy.copy(self._audiences)
                                         else:
                                             freeAudiences[day][time] = OrderedDict()
                                     else:

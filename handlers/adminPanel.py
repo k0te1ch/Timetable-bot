@@ -1,17 +1,17 @@
-#TODO REBUILD THIS
-#TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
+# TODO REBUILD THIS
+# TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from loguru import logger
 
+from filters.dispatcherFilters import IsAdmin, IsPrivate
 from utils.botMethods import shutdownBot
 from utils.context import context
-from filters.dispatcherFilters import IsAdmin, IsPrivate
 from utils.keyboards import keyboards
-from aiogram import F, Router
 
-#TODO add callback fabric
+# TODO add callback fabric
 router = Router(name="admin_panel")
 router.message.filter(IsPrivate, IsAdmin)
 
@@ -24,32 +24,29 @@ async def start(msg: Message, language: str, username: str):
 
 @router.callback_query(F.data == "bot")
 async def bot(callback: CallbackQuery, language: str, username: str):
-    logger.opt(
-        colors=True).debug(f"[<y>{username}</y>]: Choose bot in admin panel")
+    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Choose bot in admin panel")
 
     return await callback.message.edit_text(
-        "Операции над ботом",
-        reply_markup=keyboards["admin"][language].bot_commands)
+        "Операции над ботом", reply_markup=keyboards["admin"][language].bot_commands
+    )
 
 
-#TODO IN PROGRESS
+# TODO IN PROGRESS
 @router.callback_query(F.data == "restart_bot")
 async def restart(callback: CallbackQuery, language: str, username: str):
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Restart bot")
 
     await callback.answer()
-    await callback.message.answer("Бот перезагружается",
-                                  reply_markup=ReplyKeyboardRemove())
+    await callback.message.answer("Бот перезагружается", reply_markup=ReplyKeyboardRemove())
 
     await shutdownBot()
 
 
 @router.callback_query(F.data == "admin_back")
 async def back(callback: CallbackQuery, language: str, username: str):
-    logger.opt(
-        colors=True).debug(f"[<y>{username}</y>]: Call back to admin panel")
+    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Call back to admin panel")
 
     await callback.answer()
     return await callback.message.edit_text(
-        context[language].admin_panel_open,
-        reply_markup=keyboards["admin"][language].main)
+        context[language].admin_panel_open, reply_markup=keyboards["admin"][language].main
+    )

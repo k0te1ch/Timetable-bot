@@ -3,12 +3,10 @@ on:
   push:
     branches: [main, dev]
 jobs:
-
   converge:
     name: Converge
     runs-on: self-hosted
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:

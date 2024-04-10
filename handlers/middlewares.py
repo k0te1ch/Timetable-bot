@@ -1,6 +1,6 @@
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
-from aiogram import BaseMiddleware
 from aiogram.dispatcher.flags import get_flag
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from aiogram.types import Message
@@ -19,9 +19,9 @@ class GeneralMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
         event: Message,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         handlerArgs = data["handler"].__dict__["params"]
 
@@ -38,9 +38,9 @@ class ChatActionMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
         event: Message,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         long_operation_type = get_flag(data, "long_operation")
 

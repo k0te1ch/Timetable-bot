@@ -1,6 +1,6 @@
-
 # TODO welcome
 # TODO I18n
+
 
 class ru:
     # Global

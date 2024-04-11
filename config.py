@@ -10,15 +10,17 @@ env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
 
+# TODO test
 def getEnvBool(env_name: str) -> bool | None:
     env_val = os.getenv(env_name)
-    if isinstance(env_val, str) or not env_val.lower() in ["true", "false", "1", "0"]:
+    if env_val is None or not isinstance(env_val, str) or not env_val.lower() in ["true", "false", "1", "0"]:
         return None
 
-    if env_val in ["1", "0"]:
-        return bool(int(env_val))
+    env_val_lower = env_val.lower()
+    if env_val_lower in ["1", "0"]:
+        return bool(int(env_val_lower))
 
-    return env_val.lower() == "true"
+    return env_val_lower.lower() == "true"
 
 
 # BOT SETTINGS

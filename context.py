@@ -11,6 +11,7 @@ class ru:
 
     # Start handler
     canceled: str = "Отменено"
+    feedback: str = "Отправлено"
 
     # Admin panel
     admin_panel_open: str = "Админ панель"
@@ -28,6 +29,7 @@ class en:
 
     # Start handler
     canceled: str = "Canceled"
+    feedback: str = "Sending"
 
     # Admin panel
     admin_panel_open: str = "Admin panel"

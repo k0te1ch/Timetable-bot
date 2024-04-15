@@ -30,6 +30,7 @@ TIMEZONE = timezone(os.getenv("TIMEZONE"))
 # TELEGRAM BOT SETTINGS
 API_TOKEN = os.getenv("TELEGRAM_API_TOKEN")
 SKIP_UPDATES = getEnvBool(os.getenv("SKIP_UPDATES"))
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 # FTP SETTINGS
 FTP_SERVER = os.getenv("FTP_SERVER")

@@ -15,7 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
 from config import LOG_LEVEL
-from handlers import adminPanel, mainHandler, registerHandler
+from handlers import adminPanel, mainHandler, registerHandler, feedbackHandler
 from handlers.middlewares import GeneralMiddleware
 
 # LOGGER
@@ -151,7 +151,7 @@ def _get_dp_obj(bot, redis):
     # TODO отказ от структуры загрузки всех handlerов (?)
     dp.message.middleware(GeneralMiddleware())
     dp.callback_query.middleware(GeneralMiddleware())
-    dp.include_routers(registerHandler.router, adminPanel.router, mainHandler.router)
+    dp.include_routers(registerHandler.router, adminPanel.router, mainHandler.router, feedbackHandler.router)
 
     logger.debug("Dispatcher is configured")
     return dp

@@ -6,6 +6,7 @@ from datetime import datetime
 
 import click
 from alembic import command as alembic
+from alembic.command import revision as alembic_revision
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from loguru import logger
@@ -20,7 +21,7 @@ def get_alembic_conf():
     alembic_cfg.set_main_option("script_location", "migrations")
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
     alembic_cfg.config_file_name = os.path.join("migrations", "alembic.ini")
-    if os.path.isdir("migrations") is False:
+    if not os.path.isdir("migrations"):  # TODO использовать Path
         logger.opt(colors=True).info("<light-blue>Initiating alembic...</light-blue>")
         alembic.init(alembic_cfg, "migrations")
         with open("migrations/env.py", "r+") as f:
@@ -30,6 +31,7 @@ def get_alembic_conf():
             )
             f.seek(0)
             f.write(content)
+            f.truncate()
 
     logger.debug("Alembic is configured")
     return alembic_cfg
@@ -50,7 +52,8 @@ class CliGroup(click.Group):
 
 
 @click.group(cls=CliGroup)
-def cli():
+@click.pass_context
+def cli(ctx):
     pass
 
 
@@ -69,13 +72,15 @@ async def _run():
     # Добавляем команды в бота
     from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
 
+    # TODO BotCommand или в env, или формировать при помощи handlers
     await bot.bot.set_my_commands(
-        commands=[
+        commands=[  # TODO в отдельный файл
             BotCommand(command="start", description="Команда для регистрация в боте"),
             BotCommand(command="menu", description="Команда для вызова меню"),
         ],
         scope=BotCommandScopeAllPrivateChats(),
     )
+
     logger.success("Bot polling started!")
     await bot.dp.start_polling(bot.bot, skip_updates=SKIP_UPDATES)
 
@@ -95,15 +100,7 @@ def showmigrations(verbose):
     logger.info(history)
 
 
-@cli.command()
-@click.option("-m", "--message", default=None)
-def makemigrations(message):
-    if message is None:
-        logger.opt(colors=True).info(
-            r"<y>Optinal: User -m <msg, --message=\<msg\> to give a message string to this migrate script</y>"
-        )
-        message = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
+def load_models():
     models = [m[:-3] for m in os.listdir(MODELS_DIR) if m.endswith(".py")]
     logger.opt(colors=True).info(f"Loading <y>{len(models)}</y> models")
     for model in models:
@@ -113,9 +110,18 @@ def makemigrations(message):
         except ImportError:
             logger.opt(colors=True).exception(f"Loading <y>{model}</y>...   <light-red>error</light-red>")
 
+
+@cli.command()
+@click.option("-m", "--message", default=None)
+def makemigrations(message):
+    if message is None:
+        message = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+    load_models()
+
     try:
         cfg = get_alembic_conf()
-        alembic.revision(
+        alembic_revision(
             config=cfg,
             message=message,
             autogenerate=True,
@@ -126,12 +132,11 @@ def makemigrations(message):
             version_path=None,
             rev_id=None,
         )
-        logger.debug("Alembic revisior")
+        print("Alembic revision")
     except CommandError as err:
-        logger.exception("Alembic Command Error")
-
+        print("Alembic Command Error")
         if str(err) == "Target database is not up to date.":
-            logger.opt(colors=True).info('<y>run "python bot.py migrate"</y>')
+            print('Run "python bot.py migrate"')
 
 
 @logger.catch

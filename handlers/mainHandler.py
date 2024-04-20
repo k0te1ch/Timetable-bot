@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
+from sqlalchemy.future import select
 
 from config import TIMEZONE
 from filters.dispatcherFilters import IsPrivate
@@ -14,18 +15,25 @@ from utils.ScheduleParser import scheduleParser
 router = Router(name="mainHandler")
 router.message.filter(IsPrivate)
 
-# FIXME Ошибка с кнопкой назад в настройках
+
+# TODO Убрать дублирование кода с проверкой пользователя на его существование
+
+
+async def registered(id, db):
+    from models.user import User
+
+    session = db.session
+    userId = id
+    result = await session.execute(select(User).filter_by(id=userId))
+    existingUser = result.scalars().first()
+    await session.close()
+    return existingUser
 
 
 @router.message(F.text, Command("menu"))
-async def menu(msg: Message, username: str, state: FSMContext) -> None:
-    from bot import db
-    from models.user import User
+async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 
-    session = db.session()
-    userId = msg.from_user.id
-    existingUser = session.query(User).filter_by(id=userId).first()
-    session.close()
+    existingUser = await registered(msg.from_user.id, db)
     if existingUser is None:
         from handlers.registerHandler import start
 
@@ -43,22 +51,11 @@ async def menu(msg: Message, username: str, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data == "menu")
-async def menuCallback(
-    callback: CallbackQuery,
-    username: str,
-    state: FSMContext,
-    anotherHandler: bool = False,
-) -> None:
+async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>menu</b> callback")
 
-    from bot import db
-    from models.user import User
-
-    session = db.session()
-    userId = callback.message.from_user.id
-    existingUser = session.query(User).filter_by(id=userId).first()
-    session.close()
-    if existingUser is None and not anotherHandler:
+    existingUser = await registered(callback.from_user.id, db)
+    if existingUser is None:
         from handlers.registerHandler import start
 
         await callback.answer("Вы не зарегистрированы")
@@ -69,8 +66,6 @@ async def menuCallback(
     keyboard.row(InlineKeyboardButton(text="На текущую неделю", callback_data="timetable_current_week"))
     keyboard.row(InlineKeyboardButton(text="На следующую неделю", callback_data="timetable_next_week"))
     keyboard.row(InlineKeyboardButton(text="Настройки", callback_data="settings"))
-    if not anotherHandler:
-        await callback.answer()
     await callback.message.edit_text("Меню", reply_markup=keyboard.as_markup())
 
 
@@ -78,36 +73,32 @@ async def menuCallback(
 @router.callback_query(F.data == "timetable_nextday")
 @router.callback_query(F.data == "timetable_current_week")
 @router.callback_query(F.data == "timetable_next_week")
-async def timetableForDay(callback: CallbackQuery, username: str) -> None:
+async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>timetable</b> callback")
-    from bot import db
-    from models.user import User
 
-    session = db.session()
-    userId = callback.from_user.id
-    existingUser = session.query(User).filter_by(id=userId).first()
-    session.close()
+    existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
 
     import locale
 
-    locale.setlocale(locale.LC_ALL, "ru")  # TODO исправить
-    current_week = "Знаменатель" if datetime.now(TIMEZONE).isocalendar()[1] % 2 == 0 else "Числитель"
+    locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME костыль
 
-    selected_day = datetime.now(TIMEZONE)
+    selected_day: datetime = datetime.now(TIMEZONE)
+    current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
 
     if callback.data == "timetable_today":
         pass
     elif callback.data == "timetable_nextday":
         selected_day += timedelta(days=1)
+        current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
     elif callback.data == "timetable_current_week":
         start_of_week = selected_day - timedelta(days=selected_day.weekday())
         end_of_week = start_of_week + timedelta(days=6)
         schedule_for_week_str = f"Расписание на текущую неделю ({current_week}) с {start_of_week.strftime('%d.%m.%Y')} по {end_of_week.strftime('%d.%m.%Y')}:\n\n"
         for i in range(7):
             day = start_of_week + timedelta(days=i)
-            if i == 6 and day.strftime("%A") == "Sunday":
+            if i == 6 and day.strftime("%A") == "Воскресенье":
                 continue
             if i != 0 and day.strftime("%A")[0].isupper():
                 schedule_for_week_str += f"{day.strftime('%A')} ({current_week}):\n"
@@ -128,13 +119,11 @@ async def timetableForDay(callback: CallbackQuery, username: str) -> None:
     elif callback.data == "timetable_next_week":
         start_of_week = selected_day - timedelta(days=selected_day.weekday()) + timedelta(weeks=1)
         end_of_week = start_of_week + timedelta(days=6)
-        next_week_type = (
-            "Знаменатель" if (selected_day + timedelta(weeks=1)).isocalendar()[1] % 2 == 0 else "Числитель"
-        )
+        next_week_type = "Знаменатель" if current_week == "Числитель" else "Числитель"
         schedule_for_week_str = f"Расписание на следующую неделю ({next_week_type}) с {start_of_week.strftime('%d.%m.%Y')} по {end_of_week.strftime('%d.%m.%Y')}:\n\n"
         for i in range(7):
             day = start_of_week + timedelta(days=i)
-            if i == 6 and day.strftime("%A") == "Sunday":
+            if i == 6 and day.strftime("%A") == "Воскресенье":
                 continue
             if i != 0 and day.strftime("%A")[0].isupper():
                 schedule_for_week_str += f"{day.strftime('%A')} ({next_week_type}):\n"
@@ -168,42 +157,40 @@ async def timetableForDay(callback: CallbackQuery, username: str) -> None:
     await callback.message.answer(text=schedule_for_week_str.strip())
     await callback.answer("Ваше расписание")
 
-@router.callback_query(F.data == "settings")
-async def settings(callback: CallbackQuery, username: str) -> None:
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
-    from bot import db
-    from models.user import User
 
-    session = db.session()
-    userId = callback.from_user.id
-    existingUser = session.query(User).filter_by(id=userId).first()
-    session.close()
+@router.callback_query(F.data == "settings")
+async def settings(callback: CallbackQuery, username: str, db) -> None:
+    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
+
+    existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
     keyboard = InlineKeyboardBuilder()
-    keyboard.row(InlineKeyboardButton(text="Введите сообщение для обратной связи", callback_data="feedback"))
     keyboard.row(InlineKeyboardButton(text="Удалить аккаунт", callback_data="delete_user"))
     keyboard.row(InlineKeyboardButton(text="Назад", callback_data="menu"))
     await callback.message.edit_text("Настройки", reply_markup=keyboard.as_markup())
     return await callback.answer()
 
+
 @router.callback_query(F.data == "delete_user")
-async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext) -> None:
+async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>delete_user</b> callback")
-    from bot import db
     from models.user import User
 
-    session = db.session()
+    session = db.session
     userId = callback.from_user.id
-    existingUser = session.query(User).filter_by(id=userId).first()
+    result = await session.execute(select(User).filter_by(id=userId))
+    existingUser = result.scalars().first()
+    await session.close()
     if existingUser is None:
         await callback.answer("Вы не зарегистрированы!")
     else:
         session.delete(existingUser)
         session.commit()
         await callback.answer("Вы успешно удалили свой аккаунт")
-    session.close()
+    await session.close()
     await callback.message.delete()
+    # TODO delete all chat data
     from handlers.registerHandler import start
 
     return await start(callback.message, state, username)

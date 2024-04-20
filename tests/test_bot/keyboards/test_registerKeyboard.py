@@ -1,14 +1,18 @@
 import pytest
-from keyboards.registerHandler import ru, en
+
+from keyboards.registerHandler import en, ru
 from utils.context import context
+
 
 @pytest.fixture
 def ru_keyboard():
     return ru()
 
+
 @pytest.fixture
 def en_keyboard():
     return en()
+
 
 # Тест для проверки создания кнопок отмены на русском языке
 def test_ru_cancel_button(ru_keyboard):
@@ -16,6 +20,7 @@ def test_ru_cancel_button(ru_keyboard):
 
     assert len(keyboard.keyboard) == 1
     assert keyboard.keyboard[0][0].text == context["ru"].cancel
+
 
 # Тест для проверки создания кнопок типа эпизода на английском языке
 def test_en_type_episode_buttons(en_keyboard):

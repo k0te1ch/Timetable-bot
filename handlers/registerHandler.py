@@ -1,138 +1,158 @@
+from typing import Any
+
 from aiogram import F, Router
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
+from sqlalchemy.future import select
 
 from filters.dispatcherFilters import IsPrivate
 from forms.register import Register
-from utils.context import context
 from utils.ScheduleParser import scheduleParser
 
 router = Router(name="registerHandler")
 router.message.filter(IsPrivate)
 
-from bot import db
+
+# Universal function to handle registration steps
+async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -> None:
+
+    steps: tuple[str] = Register.__state_names__
+    current_state: str = await state.get_state()
+    indexStep: int = steps.index(current_state)
+    state_data: dict[str, Any] = await state.get_data()
+    tableObj: dict[str, Any] = state_data["tableObj"]
+
+    if callback.data == "back":
+
+        await state.clear()
+        indexStep -= 1
+        current_state = steps[indexStep]
+        state_data.pop(current_state.split(":")[-1])
+        tableObj = state_data["tableObjGlob"]
+        for key in Register.__states__:
+            if key._state in state_data:
+                tableObj = tableObj[state_data[key._state]]
+
+        state_data["tableObj"] = tableObj
+        await state.set_state(current_state)
+
+        await state.update_data(state_data)
+        callback_text = "Вы вернулись на предыдущий этап регистрации"
+
+    elif callback.data.startswith(f"{current_state.split(':')[-1]}_"):
+        selected_value = list(tableObj.keys())[int(callback.data.split("_")[-1])]
+        tableObj = tableObj[selected_value]
+        await state.update_data({current_state.split(":")[-1]: selected_value, "tableObj": tableObj})
+        indexStep += 1
+        current_state = steps[indexStep]
+        await state.set_state(current_state)
+        callback_text = f'Вы выбрали "{selected_value}"'
+
+        if len(tableObj) == 1 and indexStep != 3:
+            # Автоматически выбираем единственный вариант
+            next_selected_value = list(tableObj.keys())[0]
+            tableObj = tableObj[next_selected_value]
+            await state.update_data({current_state.split(":")[-1]: next_selected_value, "tableObj": tableObj})
+            indexStep += 1
+            current_state = steps[indexStep]
+            await state.set_state(current_state)
+            callback_text = f'{callback_text}\nвтоматически выбран вариант "{next_selected_value}"'
+    else:
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for num, key in enumerate(tableObj.keys()):
+        keyboard.row(InlineKeyboardButton(text=key, callback_data=f"{current_state.split(':')[-1]}_{num}"))
+
+    if indexStep != 0:
+        keyboard.row(InlineKeyboardButton(text="Назад", callback_data="back"))
+
+    step_text = "Регистрация: Выберете " + ["ваш курс", "ваше направление", "ваш профиль", "вашу группу"][indexStep]
+    await callback.message.edit_text(step_text, reply_markup=keyboard.as_markup(resize_keyboard=True))
+    await callback.answer(callback_text)
 
 
+# Handle /start command
 @router.message(F.text, CommandStart())
-async def start(msg: Message, state: FSMContext, username: str) -> None:  # TODO
+async def start(msg: Message, state: FSMContext, username: str) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/start</b> command")
 
     await state.set_state(Register.course)
 
     tableObj = scheduleParser.getTableObj()
-    await state.update_data(tableObj=tableObj)
+    await state.update_data(tableObj=tableObj, tableObjGlob=tableObj)
+
     keyboard = InlineKeyboardBuilder()
     for num, key in enumerate(tableObj.keys()):
         keyboard.row(InlineKeyboardButton(text=key, callback_data=f"course_{num}"))
 
-    return await msg.answer(
+    await msg.answer(
         "Регистрация: Выберете ваш курс",
         reply_markup=keyboard.as_markup(resize_keyboard=True),
     )
 
 
-@router.callback_query(F.data == "cancel", StateFilter(Register))
-async def cancel(callback: CallbackQuery, state: FSMContext, language: str, username: str) -> None:
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Cancel registration")
-    await callback.message.edit_text(
-        "Регистрация: " + context[language].canceled,
-        reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
-    )
-    await state.clear()
+# Handle registration steps
+@router.callback_query(F.data == "back", StateFilter(Register))
+async def handle_back(callback: CallbackQuery, state: FSMContext) -> None:
+    await handle_registration_step(callback, state)
 
 
 @router.callback_query(F.data.contains("course_"), Register.course)
-async def getCourse(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-
-    await state.set_state(Register.direction)
-    tableObj = (await state.get_data())["tableObj"]
-    course = list(tableObj.keys())[int(callback.data[len("course_") :])]
-    tableObj = tableObj[course]
-    await state.update_data(course=course)
-    keyboard = InlineKeyboardBuilder()
-    await state.update_data(tableObj=tableObj)
-    for num, key in enumerate(tableObj.keys()):
-        keyboard.row(InlineKeyboardButton(text=key, callback_data=f"direction_{num}"))
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get course")
-    await callback.message.edit_text(
-        "Регистрация: Выберете ваше направление",
-        reply_markup=keyboard.as_markup(resize_keyboard=True),
-    )
+async def get_course(callback: CallbackQuery, state: FSMContext, username: str) -> None:
+    await handle_registration_step(callback, state)
 
 
 @router.callback_query(F.data.contains("direction_"), Register.direction)
-async def getDirection(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-
-    await state.set_state(Register.profile)
-    tableObj = (await state.get_data())["tableObj"]
-    direction = list(tableObj.keys())[int(callback.data[len("direction_") :])]
-    tableObj = tableObj[direction]
-    await state.update_data(direction=direction)
-    keyboard = InlineKeyboardBuilder()
-    await state.update_data(tableObj=tableObj)
-    for num, key in enumerate(tableObj.keys()):
-        keyboard.row(InlineKeyboardButton(text=key, callback_data=f"profile_{num}"))
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get direction")
-    await callback.message.edit_text(
-        "Регистрация: Выберете ваш профиль",
-        reply_markup=keyboard.as_markup(resize_keyboard=True),
-    )
+async def get_direction(callback: CallbackQuery, state: FSMContext, username: str) -> None:
+    await handle_registration_step(callback, state)
 
 
 @router.callback_query(F.data.contains("profile_"), Register.profile)
-async def getProfile(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-    await state.set_state(Register.group)
-    tableObj = (await state.get_data())["tableObj"]
-    profile = list(tableObj.keys())[int(callback.data[len("profile_") :])]
-    tableObj = tableObj[profile]
-    await state.update_data(profile=profile)
-    keyboard = InlineKeyboardBuilder()
-    await state.update_data(tableObj=tableObj)
-    for num, key in enumerate(tableObj.keys()):
-        keyboard.row(InlineKeyboardButton(text=key, callback_data=f"group_{num}"))
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get profile")
-    await callback.message.edit_text(
-        "Регистрация: Выберете вашу группу",
-        reply_markup=keyboard.as_markup(resize_keyboard=True),
-    )
+async def get_profile(callback: CallbackQuery, state: FSMContext, username: str) -> None:
+    await handle_registration_step(callback, state)
 
 
 @router.callback_query(F.data.contains("group_"), Register.group)
-async def getGroup(callback: CallbackQuery, state: FSMContext, username: str) -> None:
+async def get_group(callback: CallbackQuery, state: FSMContext, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get group")
-    info: dict[str] = await state.get_data()
-    from models.user import User
+
+    state_data = await state.get_data()
+    info = state_data.copy()
 
     userId = callback.from_user.id
+    group = list(info["tableObj"].keys())[int(callback.data[len("group_") :])]
+    from models.user import User
 
-    # Создаем нового пользователя на основе данных из сообщения
     new_user = User(
         id=userId,
         course=info["course"],
         direction=info["direction"],
         profile=info["profile"],
-        group=list(info["tableObj"].keys())[int(callback.data[len("group_") :])],
+        group=group,
     )
 
-    session = db.session()
-    existingUser = session.query(User).filter_by(id=userId).first()
+    session = db.session
+    result = await session.execute(select(User).filter_by(id=userId))
+    existingUser = result.scalars().first()
 
     if existingUser is None:
         # Добавляем пользователя в сессию
         session.add(new_user)
 
         # Подтверждаем изменения (выполняем коммит)
-        session.commit()
+        await session.commit()
         from handlers.mainHandler import menuCallback
 
-        session.close()
+        await session.close()
         await state.clear()
         await callback.answer("Вы успешно зарегистрированы!")
-        return await menuCallback(callback, username, state, anotherHandler=True)  # TODO костыль
-    await callback.answer("Вы уже зарегистрированы!")
-    # Закрываем сессию
-    session.close()
-    await state.clear()
+        return await menuCallback(callback, username, state)
+    else:
+        await callback.answer("Вы уже зарегистрированы!")
+        # Закрываем сессию
+        await session.close()
+        await state.clear()

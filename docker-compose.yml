@@ -1,13 +1,16 @@
 # IN PROCESS
 
-version: '3.7'
+version: '3.8'
 
 services:
   aiogram-bot:
+    container_name: bot-container
     image: bot
     stop_signal: SIGINT
     restart: always
-    build: .
+    build:
+      context: .
+      target: final
     volumes:
       - .env:/app/.env
     logging:
@@ -15,21 +18,65 @@ services:
       options:
         max-size: '50'
         max-file: '4'
-    command: >
-      bash -c "alembic upgrade head && python bot.py"
+    environment: # FIXME костыль
+      - LC_ALL=ru_RU.UTF-8
+      - LANG=ru_RU.UTF-8
     depends_on:
+      - redis
       - postgres
-  redis:
-    image: redis:latest
-    restart: always
+    networks:
+      - aiogramnetwork
+    links:
+      - postgres:postgres
+
+  postgres:
+    image: postgres:16.2-alpine3.19
+    container_name: postgres-container
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_TABLE}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    ports:
+      - "5432:5432"
     volumes:
-      # Path to directory with redis.conf file
-      - "/home/user/casino-bot-redis/redis_config:/usr/local/etc/redis"
-      # Path to Redis dumps directory
-      - "/home/user/casino-bot-redis/redis_data:/data"
-    command: "redis-server /usr/local/etc/redis/redis.conf"
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - aiogramnetwork
+
+  redis:
+    container_name: redis-container
+    image: redis:7.2.4-alpine
+    restart: always
+    command: "redis-server"
     healthcheck:
         test: [ "CMD", "redis-cli","ping" ]
-  postgresql:
-      image: postgresql:latest
-      restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    networks:
+      - aiogramnetwork
+
+  test-runner:
+    container_name: test-runner-container
+    build:
+      context: .
+      target: test
+    volumes:
+      - .env:/app/.env
+    environment:
+      - LC_ALL=ru_RU.UTF-8
+      - LANG=ru_RU.UTF-8
+    entrypoint: ["echo", "Test runner container is ready. Use 'docker-compose run test-runner run-tests' to execute tests."]
+    command: ["tail", "-f", "/dev/null"]
+
+networks:
+  aiogramnetwork:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
+  pgdata:
+    driver: local

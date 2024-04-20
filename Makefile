@@ -30,5 +30,17 @@ update: pip-tools
 lock:
 	poetry lock
 
-docker-build-run:
-	docker-compose
+docker-build:
+	docker-compose --env-file .env build
+
+docker-test: docker-build
+	docker-compose run test-runner pytest
+
+docker-run:
+	docker-compose up -d --force-recreate
+
+docker-stop:
+	docker-compose down
+
+docker-rm: docker-stop
+	docker-compose rm

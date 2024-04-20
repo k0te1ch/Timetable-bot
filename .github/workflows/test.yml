@@ -1,4 +1,4 @@
-name: Test
+name: Test without docker
 on:
   push:
     tags-ignore:
@@ -30,4 +30,4 @@ jobs:
           poetry install --with=dev,test
       - name: Run test suite
         run: |
-          poetry run pytest --cov=.
+          poetry run pytest

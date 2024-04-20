@@ -1,4 +1,4 @@
-'''
+"""
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from utils.HTTPMethods import getMyIp, downloadFileBot, downloadFile
@@ -32,7 +32,7 @@ async def test_downloadFileBot():
         mock_session.get.return_value.__aenter__.return_value = mock_response
 
         await downloadFileBot("https://example.com/file", "test_file.txt")
-        
+
         with open("test_file.txt", "rb") as file:
             assert file.read() == b'data_chunk1data_chunk2'
 
@@ -45,6 +45,6 @@ def test_downloadFile(tmp_path):
         mock_get.return_value.__enter__.return_value = mock_response
 
         downloadFile("https://example.com/file", str(test_file))
-        
+
         assert test_file.read_text() == 'data_chunk1data_chunk2'
-        '''
+        """

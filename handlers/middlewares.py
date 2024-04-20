@@ -31,6 +31,11 @@ class GeneralMiddleware(BaseMiddleware):
         if "username" in handlerArgs:
             data["username"] = event.from_user.username
 
+        if "db" in handlerArgs:
+            from bot import db
+
+            data["db"] = db
+
         return await handler(event, data)
 
 

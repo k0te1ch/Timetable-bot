@@ -1,5 +1,7 @@
 from loguru import logger
 
+# FIXME: this module
+
 
 @logger.catch
 async def getMyIp() -> str:

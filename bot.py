@@ -1,7 +1,6 @@
-# TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
+import asyncio
 import os
 import re
-import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -10,37 +9,13 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
-from redis import Redis
+from redis.asyncio import Redis
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
-from config import LOG_LEVEL
-from handlers import adminPanel, mainHandler, registerHandler, feedbackHandler
+from handlers import adminPanel, feedbackHandler, mainHandler, registerHandler
 from handlers.middlewares import GeneralMiddleware
-
-# LOGGER
-logger.remove()
-logger.add(
-    sys.stdout,
-    colorize=True,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level>::<blue>{module}</blue>::<cyan>{function}</cyan>::<cyan>{line}</cyan> | <level>{message}</level>",
-    level=LOG_LEVEL,
-    backtrace=True,
-    diagnose=True,
-)
-
-MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
-if not os.path.exists(f"{MODULE_PATH}/logs"):
-    os.mkdir(f"{MODULE_PATH}/logs")
-logger.add(
-    MODULE_PATH + "/logs/file_{time:YYYY-MM-DD_HH-mm-ss}.log",
-    rotation="5 MB",
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level}::{module}::{function}::{line} | {message}",
-    level="TRACE",
-    backtrace=True,
-    diagnose=True,
-)
-
 
 # IMPORT SETTINGS
 MAIN_MODULE_NAME = os.path.basename(__file__)[:-3]
@@ -57,8 +32,18 @@ except ImportError as err:
     logger.critical(f"{var} is not defined in the config file")
     exit()
 
+# TODO сделать универсальность между async/sync sqlalchemy
+
 
 # OBJECTS FOR BOT
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
+
+
 class _SQLAlchemy:
     def __init__(self, db_url):
         self.engine = create_engine(db_url)
@@ -72,6 +57,24 @@ class _SQLAlchemy:
     @property
     def metadata(self):
         return self.Model.metadata
+
+
+class _AsyncSQLAlchemy:
+    def __init__(self, db_url):
+        self.engine = create_async_engine(db_url)
+        self.Model = Base
+
+        self.AsyncSession = async_sessionmaker(bind=self.engine, class_=AsyncSession, expire_on_commit=False)
+        self.session: async_scoped_session[AsyncSession] = async_scoped_session(
+            self.AsyncSession, scopefunc=self._scopefunc
+        )
+
+    @property
+    def metadata(self):
+        return self.Model.metadata
+
+    def _scopefunc(self):
+        return asyncio.current_task()
 
 
 class _NotDefinedModule(Exception):
@@ -136,13 +139,7 @@ def _get_redis_obj():
 def _get_dp_obj(bot, redis):
     logger.debug("Dispatcher configurate:")
     if not isinstance(redis, _NoneModule):
-        cfg = redis.connection_pool.connection_kwargs
-        storage = RedisStorage(
-            host=cfg.get("host", "localhost"),
-            port=cfg.get("port", 6379),
-            db=cfg.get("db", 0),
-            password=cfg.get("password"),
-        )
+        storage = RedisStorage(redis)
         logger.debug("Used by Redis")
     else:
         storage = MemoryStorage()
@@ -159,9 +156,12 @@ def _get_dp_obj(bot, redis):
 
 # GET DATABASE OBJECT
 def _get_db_obj():
-    if DATABASE_URL is not None:
+    if "async" in DATABASE_URL:
+        db = _AsyncSQLAlchemy(DATABASE_URL)
+        logger.debug("Datebase loaded (Async)")
+    elif DATABASE_URL is not None:
         db = _SQLAlchemy(DATABASE_URL)
-        logger.debug("Datebase loaded")
+        logger.debug("Datebase loaded (Sync)")
     else:
         db = _NoneModule("db", "DATABASE_URL")
         logger.debug("Datebase not loaded")
@@ -200,7 +200,9 @@ if __name__ == MAIN_MODULE_NAME:
     scheduler = _get_scheduler_obj(redis)
 
 if __name__ == "__main__":
+    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
     from cli import cli
 
     logger.debug("Calling the cli module")
+
     cli()

@@ -1,8 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from aiogram.types import InlineKeyboardMarkup
 
-from keyboards.admin import ru, en
+from keyboards.admin import en, ru
 from utils.context import _Context
 
 
@@ -15,27 +16,28 @@ def mocked_context():
 
 
 def test_ru_keyboard(mocked_context):
-    with patch.object(_Context, '__getitem__', return_value=mocked_context):
+    with patch.object(_Context, "__getitem__", return_value=mocked_context):
         keyboard = ru.main
         assert isinstance(keyboard, InlineKeyboardMarkup)
-        assert len(keyboard.inline_keyboard) == 1  
+        assert len(keyboard.inline_keyboard) == 1
+
 
 def test_en_keyboard(mocked_context):
-    with patch.object(_Context, '__getitem__', return_value=mocked_context):
+    with patch.object(_Context, "__getitem__", return_value=mocked_context):
         keyboard = en.main
         assert isinstance(keyboard, InlineKeyboardMarkup)
-        assert len(keyboard.inline_keyboard) == 1  
+        assert len(keyboard.inline_keyboard) == 1
 
 
 def test_ru_commands_keyboard(mocked_context):
-    with patch.object(_Context, '__getitem__', return_value=mocked_context):
+    with patch.object(_Context, "__getitem__", return_value=mocked_context):
         keyboard = ru.bot_commands
         assert isinstance(keyboard, InlineKeyboardMarkup)
-        assert len(keyboard.inline_keyboard) == 1  
+        assert len(keyboard.inline_keyboard) == 1
 
 
 def test_en_commands_keyboard(mocked_context):
-    with patch.object(_Context, '__getitem__', return_value=mocked_context):
+    with patch.object(_Context, "__getitem__", return_value=mocked_context):
         keyboard = en.bot_commands
         assert isinstance(keyboard, InlineKeyboardMarkup)
-        assert len(keyboard.inline_keyboard) == 1  
+        assert len(keyboard.inline_keyboard) == 1

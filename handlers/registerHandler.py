@@ -51,6 +51,7 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
         await state.set_state(current_state)
 
         await state.update_data(state_data)
+        # TODO: Автоматом скипать кнопку, если она одна
         callback_text = "Вы вернулись на предыдущий этап регистрации"
 
     elif callback.data.startswith(f"{current_state.split(':')[-1]}_"):
@@ -138,17 +139,16 @@ async def get_group(callback: CallbackQuery, state: FSMContext, username: str, d
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get group")
 
     state_data = await state.get_data()
-    info = state_data.copy()
 
     userId = callback.from_user.id
-    group = list(info["tableObj"].keys())[int(callback.data[len("group_") :])]
+    group = list(state_data["tableObj"].keys())[int(callback.data[len("group_") :])]
     from models.user import User
 
     new_user = User(
         id=userId,
-        course=info["course"],
-        direction=info["direction"],
-        profile=info["profile"],
+        course=state_data["course"],
+        direction=state_data["direction"],
+        profile=state_data["profile"],
         group=group,
     )
 
@@ -160,16 +160,15 @@ async def get_group(callback: CallbackQuery, state: FSMContext, username: str, d
         # Добавляем пользователя в сессию
         session.add(new_user)
 
-        # Подтверждаем изменения (выполняем коммит)
         await session.commit()
-        from handlers.mainHandler import menuCallback
-
         await session.close()
         await state.clear()
+
         await callback.answer("Вы успешно зарегистрированы!")
-        return await menuCallback(callback, username, state)
+        from handlers.mainHandler import menuCallback
+
+        return await menuCallback(callback=callback, username=username, state=state, db=db)
     else:
-        await callback.answer("Вы уже зарегистрированы!")
-        # Закрываем сессию
         await session.close()
+        await callback.answer("Вы уже зарегистрированы!")
         await state.clear()

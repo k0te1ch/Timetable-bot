@@ -191,11 +191,7 @@ async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, 
         await callback.answer("Вы успешно удалили свой аккаунт")
     await session.close()
     await callback.message.delete()
-    # TODO Перенести в botMethods
-    from bot import bot
-
-    for i in range(callback.message.message_id, 0, -1):
-        await bot.delete_message(userId, i)
+    # TODO Удалить весь чат
     from handlers.registerHandler import start
 
     return await start(msg=callback.message, state=state, username=username, db=db)

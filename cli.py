@@ -16,14 +16,14 @@ from config import DATABASE_URL, ENABLE_APSCHEDULER, MODELS_DIR, SKIP_UPDATES
 
 
 @logger.catch
-def get_alembic_conf():
+def get_alembic_conf(sync: bool = False):
     alembic_cfg = Config()
     alembic_cfg.set_main_option("script_location", "migrations")
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
     alembic_cfg.config_file_name = os.path.join("migrations", "alembic.ini")
-    if not os.path.isdir("migrations"):  # TODO использовать Path
+    if os.path.isdir("migrations") is False:
         logger.opt(colors=True).info("<light-blue>Initiating alembic...</light-blue>")
-        alembic.init(alembic_cfg, "migrations")
+        alembic.init(alembic_cfg, "migrations", "generic" if sync else "async")
         with open("migrations/env.py", "r+") as f:
             content = f.read()
             content = content.replace(
@@ -113,14 +113,15 @@ def load_models():
 
 @cli.command()
 @click.option("-m", "--message", default=None)
-def makemigrations(message):
+@click.option("-s", "--sync", default=True)
+def makemigrations(message, sync):
     if message is None:
         message = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
     load_models()
 
     try:
-        cfg = get_alembic_conf()
+        cfg = get_alembic_conf(sync)
         alembic_revision(
             config=cfg,
             message=message,
@@ -143,8 +144,9 @@ def makemigrations(message):
 @cli.command()
 @click.option("-r", "--revision", default="head")
 @click.option("--upgrade/--downgrade", default=True, help="Default is upgrade")
-def migrate(revision, upgrade):
-    cfg = get_alembic_conf()
+@click.option("-s", "--sync", default=True)
+def migrate(revision, upgrade, sync):
+    cfg = get_alembic_conf(sync)
     if upgrade is True:
         alembic.upgrade(cfg, revision)
         logger.debug("Alembic upgrade")

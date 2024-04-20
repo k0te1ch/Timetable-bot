@@ -32,6 +32,8 @@ services:
   postgres:
     image: postgres:16.2-alpine3.19
     container_name: postgres-container
+    restart: always
+    stop_signal: SIGINT
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_USER: ${DB_USER}
@@ -48,6 +50,7 @@ services:
     container_name: redis-container
     image: redis:7.2.4-alpine
     restart: always
+    stop_signal: SIGINT
     command: "redis-server"
     healthcheck:
         test: [ "CMD", "redis-cli","ping" ]

@@ -113,7 +113,7 @@ logger.add(
 for path in [FILES_PATH, LOGS_PATH]:
     if not isinstance(path, Path):
         path = Path(path)
-    if not path.exist():
+    if not path.exists():
         try:
             path.mkdir(parents=True)
             print(f"Директория {path} успешно создана.")

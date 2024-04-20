@@ -37,7 +37,7 @@ async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
     if existingUser is None:
         from handlers.registerHandler import start
 
-        return await start(msg, state, username)
+        return await start(msg=msg, state=state, username=username, db=db)
 
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/menu</b> command")
 
@@ -59,7 +59,7 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
         from handlers.registerHandler import start
 
         await callback.answer("Вы не зарегистрированы")
-        return await start(callback.message, state, username)
+        return await start(msg=callback.message, state=state, username=username, db=db)
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text="На сегодня", callback_data="timetable_today"))
     keyboard.row(InlineKeyboardButton(text="На завтра", callback_data="timetable_nextday"))
@@ -175,22 +175,27 @@ async def settings(callback: CallbackQuery, username: str, db) -> None:
 @router.callback_query(F.data == "delete_user")
 async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>delete_user</b> callback")
+    from sqlalchemy import delete
+
     from models.user import User
 
     session = db.session
     userId = callback.from_user.id
     result = await session.execute(select(User).filter_by(id=userId))
     existingUser = result.scalars().first()
-    await session.close()
     if existingUser is None:
         await callback.answer("Вы не зарегистрированы!")
     else:
-        session.delete(existingUser)
-        session.commit()
+        await session.execute(delete(User).where(User.id == userId))
+        await session.commit()
         await callback.answer("Вы успешно удалили свой аккаунт")
     await session.close()
     await callback.message.delete()
-    # TODO delete all chat data
+    # TODO Перенести в botMethods
+    from bot import bot
+
+    for i in range(callback.message.message_id, 0, -1):
+        await bot.delete_message(userId, i)
     from handlers.registerHandler import start
 
-    return await start(callback.message, state, username)
+    return await start(msg=callback.message, state=state, username=username, db=db)

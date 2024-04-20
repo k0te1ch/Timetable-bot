@@ -95,7 +95,7 @@ async def start(msg: Message, state: FSMContext, username: str, db) -> None:
     if existingUser is not None:
         from handlers.mainHandler import menu
 
-        return await menu(msg, state, username, db)
+        return await menu(msg=msg, username=username, state=state, db=db)
 
     await state.set_state(Register.course)
 

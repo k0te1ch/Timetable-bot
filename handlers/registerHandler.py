@@ -16,6 +16,17 @@ router = Router(name="registerHandler")
 router.message.filter(IsPrivate)
 
 
+async def registered(id, db):
+    from models.user import User
+
+    session = db.session
+    userId = id
+    result = await session.execute(select(User).filter_by(id=userId))
+    existingUser = result.scalars().first()
+    await session.close()
+    return existingUser
+
+
 # Universal function to handle registration steps
 async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -> None:
 
@@ -77,8 +88,14 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
 
 # Handle /start command
 @router.message(F.text, CommandStart())
-async def start(msg: Message, state: FSMContext, username: str) -> None:
+async def start(msg: Message, state: FSMContext, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/start</b> command")
+
+    existingUser = await registered(msg.from_user.id, db)
+    if existingUser is None:
+        from handlers.mainHandler import menu
+
+        return await menu(msg, state, username, db)
 
     await state.set_state(Register.course)
 

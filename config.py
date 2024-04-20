@@ -1,4 +1,3 @@
-# TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 import json
 import os
 import sys
@@ -8,8 +7,10 @@ from dotenv import load_dotenv
 from loguru import logger
 from pytz import timezone
 
+# TODO: Добавить логирование
+# TODO: Добавить загрузку .env из аргументов запуска
 
-# TODO добавить загрузку .env из аргументов запуска
+
 def loadEnv():
     env_file = os.getenv("ENVFILE", ".env")
     if env_file.endswith(".env"):
@@ -93,6 +94,7 @@ SRC_PATH = Path(__file__).parent
 TIMETABLE_FILENAME = getStrOrNone("TIMETABLE_FILENAME")
 
 FILES_PATH = SRC_PATH / getStrOrNone("FILES_PATH")
+LOGS_PATH = SRC_PATH / "logs"
 TIMETABLE_PATH = FILES_PATH / TIMETABLE_FILENAME
 
 
@@ -107,11 +109,19 @@ logger.add(
     diagnose=True,
 )
 
-MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
-if not os.path.exists(f"{MODULE_PATH}/logs"):
-    os.mkdir(f"{MODULE_PATH}/logs")
+# make dirs
+for path in [FILES_PATH, LOGS_PATH]:
+    if not isinstance(path, Path):
+        path = Path(path)
+    if not path.exist():
+        try:
+            path.mkdir(parents=True)
+            print(f"Директория {path} успешно создана.")
+        except OSError as e:
+            print(f"Ошибка создания директории {path}: {e}")
+
 logger.add(
-    MODULE_PATH + "/logs/file_{time:YYYY-MM-DD_HH-mm-ss}.log",
+    LOGS_PATH / "file_{time:YYYY-MM-DD_HH-mm-ss}.log",
     rotation="5 MB",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level}::{module}::{function}::{line} | {message}",
     level="TRACE",

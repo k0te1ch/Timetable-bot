@@ -16,14 +16,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
+          python-version: '3.8'
 
       - name: Install auto-changelog
         run: |
-          pip install auto-changelog
+          poetry add auto-changelog
 
       - name: Run auto-changelog
-        run: auto-changelog
+        run: poetry run auto-changelog
 
       - name: Commit and push changes
         run: |

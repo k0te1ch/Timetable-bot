@@ -1,0 +1,17 @@
+name: 'Generate Auto Changelog'
+on:
+    push:
+        branches:
+            - dev-Shubin
+jobs:
+    master:
+        name: 'build'
+        runs-on: self-hosted
+        steps:
+            - uses: actions/checkout@master
+              with:
+                  fetch-depth: 0
+            - name: Generate Auto Changelog
+              uses: ahmadawais/action-auto-changelog@master
+              with:
+                  github_token: $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

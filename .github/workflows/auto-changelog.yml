@@ -1,0 +1,31 @@
+name: Auto Changelog
+
+on:
+  push:
+    branches:
+      - dev-Shubin
+
+jobs:
+  update_changelog:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Node.js and auto-changelog
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - run: npm install -g auto-changelog
+
+      - name: Run auto-changelog
+        run: auto-changelog
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "Auto-update CHANGELOG.md" || exit 0
+          git push

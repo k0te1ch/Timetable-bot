@@ -20,10 +20,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install project dependencies
-        run: poetry install --no-dev
+      - name: Install dependencies
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+          source $HOME/.poetry/env
+          poetry install --no-dev
 
-      - name: Run auto-changelog
+      - name: Generate Changelog
         run: |
           poetry run auto-changelog
 

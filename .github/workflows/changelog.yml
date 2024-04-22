@@ -12,9 +12,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Generate Changelog
-        run: poetry run auto-changelog
-
       - name: Commit and Push Changes
         run: |
             git config --local user.email "actions@github.com"

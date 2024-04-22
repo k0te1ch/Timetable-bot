@@ -12,6 +12,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Debug Installed Packages
+        run: |
+          pip freeze
+
+      - name: Debug Environment Variables
+        run: |
+          echo $PATH
+
       - name: Generate Changelog
         run: auto-changelog --output CHANGELOG.md
 

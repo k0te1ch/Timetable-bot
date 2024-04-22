@@ -9,6 +9,10 @@ from utils.context import context
 
 router = Router(name="feedbackHandler")
 
+'''
+Проверка работы в действии
+'''
+
 @router.callback_query(F.data == "feedback")
 async def feedback(callback: CallbackQuery, state: FSMContext):
     await callback.answer("Введите сообщение для обратной связи")

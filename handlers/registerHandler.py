@@ -53,6 +53,20 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
         await state.update_data(state_data)
         # TODO: Автоматом скипать кнопку, если она одна
         callback_text = "Вы вернулись на предыдущий этап регистрации"
+        while len(tableObj) == 1 and indexStep != 0:
+            # Автоматически выбираем единственный вариант
+            await state.clear()
+            indexStep -= 1
+            current_state = steps[indexStep]
+            state_data.pop(current_state.split(":")[-1])
+            tableObj = state_data["tableObjGlob"]
+            for key in Register.__states__:
+                if key._state in state_data:
+                    tableObj = tableObj[state_data[key._state]]
+
+            state_data["tableObj"] = tableObj
+            await state.set_state(current_state)
+            await state.update_data(state_data)
 
     elif callback.data.startswith(f"{current_state.split(':')[-1]}_"):
         selected_value = list(tableObj.keys())[int(callback.data.split("_")[-1])]
@@ -63,7 +77,7 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
         await state.set_state(current_state)
         callback_text = f'Вы выбрали "{selected_value}"'
 
-        if len(tableObj) == 1 and indexStep != 3:
+        while len(tableObj) == 1 and indexStep != 3:
             # Автоматически выбираем единственный вариант
             next_selected_value = list(tableObj.keys())[0]
             tableObj = tableObj[next_selected_value]
@@ -71,7 +85,6 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
             indexStep += 1
             current_state = steps[indexStep]
             await state.set_state(current_state)
-            callback_text = f'{callback_text}\nвтоматически выбран вариант "{next_selected_value}"'
     else:
         return
 

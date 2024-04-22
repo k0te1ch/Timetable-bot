@@ -10,11 +10,17 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
+
+      - name: Generate Changelog
+        run: |
+          # Пример: установка и использование conventional-changelog
+          npm install -g conventional-changelog-cli
+          conventional-changelog -p angular -i CHANGELOG.md -s
 
       - name: Add Changes
         run: |
-          git add --all
+          git add CHANGELOG.md
           git diff-index --quiet HEAD || git commit -m "ci: Update Changelog"
 
       - name: Set Git User
@@ -24,3 +30,4 @@ jobs:
 
       - name: Push Changes
         run: git push origin HEAD:dev-Shubin
+

@@ -10,10 +10,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Add Changes
-        run: git add CHANGELOG.md
+        run: git add --all
 
       - name: Set Git User
         run: |

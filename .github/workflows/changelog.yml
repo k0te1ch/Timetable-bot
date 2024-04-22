@@ -1,17 +1,34 @@
-name: 'Generate Auto Changelog'
+name: changelog
+
 on:
-    push:
-        branches:
-            - dev-Shubin
+  push:
+    branches:
+      - dev-Shubin
+
 jobs:
-    master:
-        name: 'build'
-        runs-on: self-hosted
-        steps:
-            - uses: actions/checkout@master
-              with:
-                  fetch-depth: 0
-            - name: Generate Auto Changelog
-              uses: ahmadawais/action-auto-changelog@master
-              with:
-                  github_token: $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
+  update-changelog:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          poetry install
+          poetry add auto-changelog
+
+      - name: Generate Changelog
+        run: auto-changelog --output CHANGELOG.md
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add CHANGELOG.md
+          git commit -m "ci: Update Changelog"
+          git push origin HEAD:dev-Shubin

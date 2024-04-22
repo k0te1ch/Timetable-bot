@@ -1,4 +1,4 @@
-name: changelog
+name: Generate Changelog
 
 on:
   push:
@@ -6,37 +6,28 @@ on:
       - dev-Shubin
 
 jobs:
-  update-changelog:
+  generate_changelog:
     runs-on: self-hosted
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          python-version: '3.10' 
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-          source $HOME/.poetry/env
+          node-version: '14'
 
       - name: Install Dependencies
-        run: poetry install
+        run: npm install -g auto-changelog
 
       - name: Generate Changelog
-        run: poetry run auto-changelog -o CHANGELOG.md
+        run: auto-changelog
 
-      - name: Add Changes
+      - name: Commit Changelog
         run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git add CHANGELOG.md
-          git diff-index --quiet HEAD || git commit -m "ci: Update Changelog"
-
-      - name: Set Git User
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-
-      - name: Push Changes
-        run: git push origin HEAD:dev-Shubin
+          git commit -m "chore: update changelog [skip ci]"
+          git push

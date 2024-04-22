@@ -17,6 +17,9 @@ async def feedback(callback: CallbackQuery, state: FSMContext):
 
     await state.set_state(Feedback.message)
 
+'''
+Добавить функцию возврата обратной связи от админа к юзеру
+'''
 
 @router.message(StateFilter(Feedback.message))
 async def feedback_message(message: Message, state: FSMContext, bot):

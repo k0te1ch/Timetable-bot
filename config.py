@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from loguru import logger
 from pytz import timezone
 
-# TODO: Добавить логирование
 # TODO: Добавить загрузку .env из аргументов запуска
 
 
@@ -18,10 +17,10 @@ def loadEnv():
         load_dotenv(dotenv_path=env_path, override=True)
 
 
-def getEnvBool(env_name: str) -> bool | None:
+def get_env_bool(env_name: str, default: bool = False) -> bool:
     env_val = os.getenv(env_name)
     if env_val is None or not isinstance(env_val, str) or not env_val.lower() in ["true", "false", "1", "0"]:
-        return None
+        return default
 
     env_val_lower = env_val.lower()
     if env_val_lower in ["1", "0"]:
@@ -30,84 +29,92 @@ def getEnvBool(env_name: str) -> bool | None:
     return env_val_lower.lower() == "true"
 
 
-def getStrOrNone(env_name: str) -> str | None:
-    env_val = os.getenv(env_name)
+def get_env_str(env_key: str, default: str = None, required: bool = False) -> str | None:
+    env_val = os.getenv(env_key, default)
     if env_val is None or isinstance(env_val, str) and env_val.lower() == "none":
+        if required:
+            raise NameError(f'name "{env_val}" is not defined in your env file')
         return None
     return env_val
 
 
+def set_up_logger(log_level: str, logs_path: Path):
+    logger.remove()
+    logger.add(
+        sys.stdout,
+        colorize=True,
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level>::<blue>{module}</blue>::<cyan>{function}</cyan>::<cyan>{line}</cyan> | <level>{message}</level>",
+        level=log_level,
+        backtrace=True,
+        diagnose=True,
+    )
+
+    logger.add(
+        logs_path / "file_{time:YYYY-MM-DD_HH-mm-ss}.log",
+        rotation="5 MB",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level}::{module}::{function}::{line} | {message}",
+        level="TRACE",
+        backtrace=True,
+        diagnose=True,
+    )
+
+
 loadEnv()
 
-# BOT SETTINGS
-CS_URL = getStrOrNone("CS_URL")
-TIMEZONE = timezone(getStrOrNone("TIMEZONE"))
-
-# TELEGRAM BOT SETTINGS
-API_TOKEN = os.getenv("TELEGRAM_API_TOKEN")
-SKIP_UPDATES = getEnvBool(os.getenv("SKIP_UPDATES"))
-ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
-
-# FTP SETTINGS
-FTP_SERVER = getStrOrNone("FTP_SERVER")
-FTP_LOGIN = getStrOrNone("FTP_LOGIN")
-FTP_PASSWORD = getStrOrNone("FTP_PASSWORD")
+SRC_PATH = Path(__file__).parent
 
 # LOGGER SETTINGS
-LOG_LEVEL = getStrOrNone("LOG_LEVEL")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOGS_PATH = SRC_PATH / "logs"
+set_up_logger(LOG_LEVEL, LOGS_PATH)
+
+
+# BOT SETTINGS
+CS_URL = get_env_str("CS_URL", required=True)
+TIMEZONE = timezone(get_env_str("TIMEZONE", default="GMT"))
+
+# TELEGRAM BOT SETTINGS
+API_TOKEN = get_env_str("TELEGRAM_API_TOKEN", required=True)
+SKIP_UPDATES = get_env_bool("SKIP_UPDATES", default=True)
+ADMIN_CHAT_ID = get_env_str("ADMIN_CHAT_ID", required=True)
+
 
 # default tg_server is official api server
-TG_SERVER = getStrOrNone("TG_SERVER")
-LOCAL = getEnvBool("LOCAL")
+TG_SERVER = get_env_str("TG_SERVER")  # TODO: отрефакторить поддержку TG_SERVER
+LOCAL = get_env_bool("LOCAL", default=False)
 
-# default parse_mode is None
-PARSE_MODE = getStrOrNone("PARSE_MODE")
+PARSE_MODE = get_env_str("PARSE_MODE", default="html")
 
-PROXY = getStrOrNone("PROXY")
+DATABASE = get_env_bool("DATABASE", default=True)
 
-PROXY_AUTH = getStrOrNone("PROXY_AUTH")
+DATABASE_URL = get_env_str("DATABASE_URL", required=True)
 
-DATABASE = getEnvBool("DATABASE")
+REDIS_URL = get_env_str("REDIS_URL", default="redis://redis:6379/0", required=True)
 
-DATABASE_URL = getStrOrNone("DATABASE_URL")
+KEYBOARDS_DIR = get_env_str("KEYBOARDS_DIR", default="keyboards")
+HANDLERS_DIR = get_env_str("HANDLERS_DIR", default="handlers")
+MODELS_DIR = get_env_str("MODELS_DIR", default="models")
+CONTEXT_FILE = get_env_str("CONTEXT_FILE", default="context")
 
-REDIS_URL = getStrOrNone("REDIS_URL")
+ENABLE_APSCHEDULER = get_env_bool("ENABLE_APSCHEDULER", default=True)
 
-KEYBOARDS_DIR = getStrOrNone("KEYBOARDS_DIR")
-HANDLERS_DIR = getStrOrNone("HANDLERS_DIR")
-MODELS_DIR = getStrOrNone("MODELS_DIR")
-CONTEXT_FILE = getStrOrNone("CONTEXT_FILE")
+# TODO: Создать функцию, которая будет импортировать списки
+ADMINS = json.loads(get_env_str("ADMINS"))
 
-ENABLE_APSCHEDULER = getStrOrNone("ENABLE_APSCHEDULER")
+HANDLERS = json.loads(get_env_str("HANDLERS"))
 
-ADMINS = json.loads(getStrOrNone("ADMINS"))
+KEYBOARDS = json.loads(get_env_str("KEYBOARDS"))
 
-HANDLERS = json.loads(getStrOrNone("HANDLERS"))
-
-KEYBOARDS = json.loads(getStrOrNone("KEYBOARDS"))
-
-LANGUAGES = json.loads(getStrOrNone("LANGUAGES"))
+LANGUAGES = json.loads(get_env_str("LANGUAGES"))
 
 
-# SOURCES
-SRC_PATH = Path(__file__).parent
-TIMETABLE_FILENAME = getStrOrNone("TIMETABLE_FILENAME")
+# SOURCES OF PROJECT
+# TODO: make method for paths
+TIMETABLE_FILENAME = get_env_str("TIMETABLE_FILENAME", default="timetable.xlsx", required=True)
 
-FILES_PATH = SRC_PATH / getStrOrNone("FILES_PATH")
-LOGS_PATH = SRC_PATH / "logs"
-TIMETABLE_PATH = FILES_PATH / TIMETABLE_FILENAME
+FILES_PATH: Path = SRC_PATH / get_env_str("FILES_PATH", default="files")
+TIMETABLE_PATH: Path = FILES_PATH / TIMETABLE_FILENAME
 
-
-# LOGGER
-logger.remove()
-logger.add(
-    sys.stdout,
-    colorize=True,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level>::<blue>{module}</blue>::<cyan>{function}</cyan>::<cyan>{line}</cyan> | <level>{message}</level>",
-    level=LOG_LEVEL,
-    backtrace=True,
-    diagnose=True,
-)
 
 # make dirs
 for path in [FILES_PATH, LOGS_PATH]:
@@ -116,15 +123,6 @@ for path in [FILES_PATH, LOGS_PATH]:
     if not path.exists():
         try:
             path.mkdir(parents=True)
-            print(f"Директория {path} успешно создана.")
+            logger.debug(f"Директория {path} успешно создана")
         except OSError as e:
-            print(f"Ошибка создания директории {path}: {e}")
-
-logger.add(
-    LOGS_PATH / "file_{time:YYYY-MM-DD_HH-mm-ss}.log",
-    rotation="5 MB",
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level}::{module}::{function}::{line} | {message}",
-    level="TRACE",
-    backtrace=True,
-    diagnose=True,
-)
+            logger.error(f"Ошибка создания директории {path}: {e}")

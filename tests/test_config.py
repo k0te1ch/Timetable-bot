@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from config import getEnvBool, getStrOrNone
+from config import get_env_bool, get_env_str
 
 
 @pytest.fixture(autouse=True)
@@ -27,19 +27,19 @@ def test_loadEnv():
 
 def test_getEnvBool():
     # Valid boolean strings
-    assert getEnvBool("SKIP_UPDATES") is True
-    assert getEnvBool("DATABASE") is False
+    assert get_env_bool("SKIP_UPDATES") is True
+    assert get_env_bool("DATABASE") is False
 
     # Invalid cases
-    assert getEnvBool("NON_EXISTING_ENV_VAR") is None
-    assert getEnvBool("CS_URL") is None
+    assert get_env_bool("NON_EXISTING_ENV_VAR") is None
+    assert get_env_bool("CS_URL") is None
 
 
 def test_getStrOrNone():
     # Valid cases
-    assert getStrOrNone("CS_URL") == "https://example.com"
-    assert getStrOrNone("TIMEZONE") == "UTC"
-    assert getStrOrNone("TELEGRAM_API_TOKEN") == "your_telegram_api_token"
+    assert get_env_str("CS_URL") == "https://example.com"
+    assert get_env_str("TIMEZONE") == "UTC"
+    assert get_env_str("TELEGRAM_API_TOKEN") == "your_telegram_api_token"
 
     # Invalid cases
-    assert getStrOrNone("NON_EXISTING_ENV_VAR") is None
+    assert get_env_str("NON_EXISTING_ENV_VAR") is None

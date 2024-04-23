@@ -20,9 +20,8 @@ class ru:
 
     main = main.as_markup()
     for i in context[lang].bot_commands:
-        bot_commands.add(InlineKeyboardButton(text=i[0], callback_data=i[1]))
-    bot_commands.adjust(4)
-    bot_commands.add(InlineKeyboardButton(text=context[lang].back, callback_data="admin_back"))
+        bot_commands.row(InlineKeyboardButton(text=i[0], callback_data=i[1]))
+    bot_commands.row(InlineKeyboardButton(text=context[lang].back, callback_data="admin_back"))
     bot_commands = bot_commands.as_markup()
 
 

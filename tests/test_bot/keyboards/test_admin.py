@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiogram.types import InlineKeyboardMarkup
 
-from keyboards.admin import en, ru
+from keyboards.adminPanel import en, ru
 from utils.context import _Context
 
 

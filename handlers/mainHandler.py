@@ -17,6 +17,7 @@ router.message.filter(IsPrivate)
 
 
 # TODO Убрать дублирование кода с проверкой пользователя на его существование
+# TODO Убрать создание клавиатур в keyboards
 
 
 async def registered(id, db):
@@ -33,6 +34,7 @@ async def registered(id, db):
 @router.message(F.text, Command("menu"))
 async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 
+    # TODO: убрать это в отдельны метод в модель User
     existingUser = await registered(msg.from_user.id, db)
     if existingUser is None:
         from handlers.registerHandler import start
@@ -54,6 +56,7 @@ async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>menu</b> callback")
 
+    # TODO: убрать это в отдельны метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         from handlers.registerHandler import start
@@ -69,6 +72,7 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
     await callback.message.edit_text("Меню", reply_markup=keyboard.as_markup())
 
 
+# FIXME: что это такое? 👇 (Отрефакторить эту тему)
 @router.callback_query(F.data == "timetable_today")
 @router.callback_query(F.data == "timetable_nextday")
 @router.callback_query(F.data == "timetable_current_week")
@@ -76,13 +80,14 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
 async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>timetable</b> callback")
 
+    # TODO: убрать это в отдельны метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
 
     import locale
 
-    locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME костыль
+    locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
 
     selected_day: datetime = datetime.now(TIMEZONE)
     current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
@@ -162,6 +167,7 @@ async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
 async def settings(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
 
+    # TODO: убрать это в отдельны метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
@@ -180,6 +186,7 @@ async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, 
 
     from models.user import User
 
+    # TODO: убрать это в отдельны метод в модель User
     session = db.session
     userId = callback.from_user.id
     result = await session.execute(select(User).filter_by(id=userId))
@@ -192,7 +199,7 @@ async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, 
         await callback.answer("Вы успешно удалили свой аккаунт")
     await session.close()
     await callback.message.delete()
-    # TODO Удалить весь чат
+    # TODO: Удалить весь чат
     from handlers.registerHandler import start
 
     return await start(msg=callback.message, state=state, username=username, db=db)

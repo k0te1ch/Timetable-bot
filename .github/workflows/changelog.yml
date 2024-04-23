@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - dev-Shubin
+      - dev
+      - dev-Khvostov
 
 jobs:
   generate_changelog:

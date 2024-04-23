@@ -115,9 +115,7 @@ def _get_bot_obj() -> Bot:
         )
     else:
         logger.opt(colors=True).debug("The standard api tg server is used")
-    # TODO logging
-    # TODO proxy
-    # TODO server
+
     bot = Bot(token=API_TOKEN, parse_mode=PARSE_MODE, session=TG_SERVER)
     logger.debug("Bot is configured")
     return bot
@@ -145,7 +143,6 @@ def _get_dp_obj(bot, redis):
         storage = MemoryStorage()
         logger.debug("Used by MemoryStorage")
     dp = Dispatcher(storage=storage)
-    # TODO отказ от структуры загрузки всех handlerов (?)
     dp.message.middleware(GeneralMiddleware())
     dp.callback_query.middleware(GeneralMiddleware())
     dp.include_routers(registerHandler.router, adminPanel.router, mainHandler.router, feedbackHandler.router)

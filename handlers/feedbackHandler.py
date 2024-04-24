@@ -9,6 +9,9 @@ from filters.dispatcherFilters import IsPrivate
 from forms.feedback import Feedback
 from utils.context import context
 
+# TODO: Логирование
+# TODO: Добавить кнопку отмены
+
 router = Router(name="feedbackHandler")
 router.message.filter(IsPrivate)
 

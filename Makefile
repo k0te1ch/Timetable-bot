@@ -39,6 +39,9 @@ docker-test: docker-build
 docker-run:
 	docker-compose up -d --force-recreate
 
+docker-up: docker-build
+	docker-compose up -d --force-recreate
+
 docker-stop:
 	docker-compose down
 

@@ -16,6 +16,10 @@ router = Router(name="registerHandler")
 router.message.filter(IsPrivate)
 
 
+# TODO: Вынести fork_maker в botMethods
+# TODO: Добавить логирование
+
+
 async def registered(id, db):
     from models.user import User
 
@@ -28,6 +32,7 @@ async def registered(id, db):
 
 
 # Universal function to handle registration steps
+# form_maker
 async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -> None:
 
     steps: tuple[str] = Register.__state_names__

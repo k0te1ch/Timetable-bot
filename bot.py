@@ -14,8 +14,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
-from handlers import adminPanel, feedbackHandler, mainHandler, registerHandler
+from handlers import adminPanel, feedbackHandler, free_audiences_handler, mainHandler, registerHandler
 from handlers.middlewares import GeneralMiddleware
+
+# TODO: Создать отдельную директорию для middlewares
 
 # IMPORT SETTINGS
 MAIN_MODULE_NAME = os.path.basename(__file__)[:-3]
@@ -145,7 +147,13 @@ def _get_dp_obj(bot, redis):
     dp = Dispatcher(storage=storage)
     dp.message.middleware(GeneralMiddleware())
     dp.callback_query.middleware(GeneralMiddleware())
-    dp.include_routers(registerHandler.router, adminPanel.router, mainHandler.router, feedbackHandler.router)
+    dp.include_routers(
+        registerHandler.router,
+        adminPanel.router,
+        mainHandler.router,
+        feedbackHandler.router,
+        free_audiences_handler.router,
+    )
 
     logger.debug("Dispatcher is configured")
     return dp

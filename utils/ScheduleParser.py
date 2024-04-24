@@ -9,15 +9,19 @@ from lxml.etree import ParserError
 
 from config import CS_URL, TIMETABLE_PATH
 
-# TODO add logging
-# TODO сериализация объекта
-# TODO Распарсить ещё сами предметы
-# TODO Через абстрактные классы преобразовывать расписание для дня, недели, месяца и т.д.
-# TODO переделать дни, т.к они в словаре могут поменять порядок
-# TODO Поиск преподавателей в определённый день
-# TODO получать числитель/знаменатель через внутренний календарь
-# TODO если целый день один и тот же предмет (военка например) -> Целый день: %предмет%
-# TODO правильная сортировка словаря с предметами
+# TODO: Сделать аннотации
+# TODO: Логирование
+# TODO: Сериализация объекта
+# TODO: Распарсить ещё сами предметы
+# TODO: Через абстрактные классы преобразовывать расписание для дня, недели, месяца и т.д.
+# TODO: Переделать дни, т.к они в словаре могут поменять порядок
+# TODO: Поиск преподавателей в определённый день
+# TODO: Получать числитель/знаменатель через внутренний календарь
+# TODO: Если целый день один и тот же предмет (военка например) -> Целый день: %предмет%
+# TODO: Правильная сортировка словаря с предметами
+# TODO: Расписание для преподавателей (просто отталкиваемся от преподов)
+# TODO: Property
+# TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
 
 
 class ScheduleParser:
@@ -28,7 +32,6 @@ class ScheduleParser:
     _tableObj: OrderedDict[any] = None
     _freeAudiences: OrderedDict[any] = None
     _audiences: set[str] = set()
-    _calendar: None = None
 
     def __init__(self):
         self._toObject(self._parse(self._downloadTable()))
@@ -174,8 +177,13 @@ class ScheduleParser:
             self._toObject(self._parse(self._downloadTable()))
         return self._tableObj
 
+    def getFreeAudiencesObj(self):
+        if self._freeAudiences is None or len(self._freeAudiences) == 0:
+            self._makeFreeAudiences()
+        return self._freeAudiences
+
     def getFreeAudiences(self, day, time, numerator):
-        if len(self._freeAudiences) == 0:
+        if self._freeAudiences is None or len(self._freeAudiences) == 0:
             self._makeFreeAudiences()
         return "Вот список свободных аудиторий: " + ", ".join(self._freeAudiences[day][time][numerator])
 
@@ -210,7 +218,7 @@ class ScheduleParser:
                                                         freeAudiences[day][time][numerator].remove(audience)
                                                     continue
                                             else:
-                                                freeAudiences[day][time][numerator] = copy.copy(self._audiences)
+                                                freeAudiences[day][time][numerator] = list(copy.copy(self._audiences))
                                         else:
                                             freeAudiences[day][time] = OrderedDict()
                                     else:

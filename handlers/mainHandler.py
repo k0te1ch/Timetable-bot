@@ -34,7 +34,7 @@ async def registered(id, db):
 @router.message(F.text, Command("menu"))
 async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 
-    # TODO: убрать это в отдельны метод в модель User
+    # TODO: убрать это в отдельный метод в модель User
     existingUser = await registered(msg.from_user.id, db)
     if existingUser is None:
         from handlers.registerHandler import start
@@ -48,6 +48,7 @@ async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
     keyboard.row(InlineKeyboardButton(text="На завтра", callback_data="timetable_nextday"))
     keyboard.row(InlineKeyboardButton(text="На текущую неделю", callback_data="timetable_current_week"))
     keyboard.row(InlineKeyboardButton(text="На следующую неделю", callback_data="timetable_next_week"))
+    keyboard.row(InlineKeyboardButton(text="Найти свободную аудиторию", callback_data="free_audiences"))
     keyboard.row(InlineKeyboardButton(text="Настройки", callback_data="settings"))
     await msg.answer("Меню", reply_markup=keyboard.as_markup())
 
@@ -56,7 +57,7 @@ async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>menu</b> callback")
 
-    # TODO: убрать это в отдельны метод в модель User
+    # TODO: убрать это в отдельный метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         from handlers.registerHandler import start
@@ -68,6 +69,7 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
     keyboard.row(InlineKeyboardButton(text="На завтра", callback_data="timetable_nextday"))
     keyboard.row(InlineKeyboardButton(text="На текущую неделю", callback_data="timetable_current_week"))
     keyboard.row(InlineKeyboardButton(text="На следующую неделю", callback_data="timetable_next_week"))
+    keyboard.row(InlineKeyboardButton(text="Найти свободную аудиторию", callback_data="free_audiences"))
     keyboard.row(InlineKeyboardButton(text="Настройки", callback_data="settings"))
     await callback.message.edit_text("Меню", reply_markup=keyboard.as_markup())
 
@@ -80,7 +82,7 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
 async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>timetable</b> callback")
 
-    # TODO: убрать это в отдельны метод в модель User
+    # TODO: убрать это в отдельный метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
@@ -167,7 +169,7 @@ async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
 async def settings(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
 
-    # TODO: убрать это в отдельны метод в модель User
+    # TODO: убрать это в отдельный метод в модель User
     existingUser = await registered(callback.from_user.id, db)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
@@ -186,7 +188,7 @@ async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, 
 
     from models.user import User
 
-    # TODO: убрать это в отдельны метод в модель User
+    # TODO: убрать это в отдельный метод в модель User
     session = db.session
     userId = callback.from_user.id
     result = await session.execute(select(User).filter_by(id=userId))

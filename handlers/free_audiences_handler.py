@@ -136,4 +136,4 @@ async def get_numerator(callback: CallbackQuery, state: FSMContext, username: st
     await state.clear()
     numerator = list(state_data["free_audiences"].keys())[int(callback.data[len("numerator_") :])]
     await callback.answer("Готово!")
-    await callback.message.answer(scheduleParser.getFreeAudiences(state_data["day"], state_data["time"], numerator))
+    await callback.message.edit_text(scheduleParser.getFreeAudiences(state_data["day"], state_data["time"], numerator))

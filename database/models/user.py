@@ -1,10 +1,11 @@
-from sqlalchemy import BigInteger, Column, String
+from sqlalchemy import BigInteger, Column, String, UniqueConstraint
 
-from bot import db
+from database.database import db
 
 
 class User(db.Model):
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("id"),)
 
     id = Column(BigInteger, primary_key=True, index=True)
     course = Column(String(128), nullable=False)

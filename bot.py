@@ -10,9 +10,6 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
 from redis.asyncio import Redis
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
 from handlers import adminPanel, feedbackHandler, free_audiences_handler, mainHandler, registerHandler
 from handlers.middlewares import GeneralMiddleware
@@ -23,7 +20,7 @@ from handlers.middlewares import GeneralMiddleware
 MAIN_MODULE_NAME = os.path.basename(__file__)[:-3]
 
 try:
-    from config import API_TOKEN, DATABASE, DATABASE_URL, PARSE_MODE, REDIS_URL
+    from config import API_TOKEN, PARSE_MODE, REDIS_URL
 
     logger.debug("Loading settings from config")
 except ModuleNotFoundError:
@@ -38,45 +35,6 @@ except ImportError as err:
 
 
 # OBJECTS FOR BOT
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase
-
-
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
-
-
-class _SQLAlchemy:
-    def __init__(self, db_url):
-        self.engine = create_engine(db_url)
-        self.Model = declarative_base()
-
-        self.sessionmaker = sessionmaker(bind=self.engine)
-        self.session = scoped_session(self.sessionmaker)
-
-        self.Model.query = self.session.query_property()
-
-    @property
-    def metadata(self):
-        return self.Model.metadata
-
-
-class _AsyncSQLAlchemy:
-    def __init__(self, db_url):
-        self.engine = create_async_engine(db_url)
-        self.Model = Base
-
-        self.AsyncSession = async_sessionmaker(bind=self.engine, class_=AsyncSession, expire_on_commit=False)
-        self.session: async_scoped_session[AsyncSession] = async_scoped_session(
-            self.AsyncSession, scopefunc=self._scopefunc
-        )
-
-    @property
-    def metadata(self):
-        return self.Model.metadata
-
-    def _scopefunc(self):
-        return asyncio.current_task()
 
 
 class _NotDefinedModule(Exception):
@@ -159,21 +117,6 @@ def _get_dp_obj(bot, redis):
     return dp
 
 
-# GET DATABASE OBJECT
-def _get_db_obj():
-    if "async" in DATABASE_URL:
-        db = _AsyncSQLAlchemy(DATABASE_URL)
-        logger.debug("Datebase loaded (Async)")
-    elif DATABASE_URL is not None:
-        db = _SQLAlchemy(DATABASE_URL)
-        logger.debug("Datebase loaded (Sync)")
-    else:
-        db = _NoneModule("db", "DATABASE_URL")
-        logger.debug("Datebase not loaded")
-
-    return db
-
-
 # GET SCHEDULER OBJECT
 def _get_scheduler_obj(redis):
     job_defaults = {"misfire_grace_time": 3600}
@@ -200,7 +143,6 @@ def _get_scheduler_obj(redis):
 if __name__ == MAIN_MODULE_NAME:
     bot = _get_bot_obj()
     redis = _get_redis_obj()
-    db = _get_db_obj() if DATABASE else None
     dp = _get_dp_obj(bot, redis)
     scheduler = _get_scheduler_obj(redis)
 

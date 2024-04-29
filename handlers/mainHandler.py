@@ -1,15 +1,17 @@
 from datetime import datetime, timedelta
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
-from sqlalchemy.future import select
 
 from config import TIMEZONE
+from database.models.user import User
+from database.services.user import delete_user, get_user_by_id, is_registered
 from filters.dispatcherFilters import IsPrivate
+from handlers.registerHandler import start
 from utils.ScheduleParser import scheduleParser
 
 router = Router(name="mainHandler")
@@ -20,23 +22,13 @@ router.message.filter(IsPrivate)
 # TODO Убрать создание клавиатур в keyboards
 
 
-async def registered(id, db):
-    from models.user import User
-
-    session = db.session
-    userId = id
-    result = await session.execute(select(User).filter_by(id=userId))
-    existingUser = result.scalars().first()
-    await session.close()
-    return existingUser
-
-
 @router.message(F.text, Command("menu"))
 async def menu(msg: Message, username: str, state: FSMContext, db) -> None:
 
     # TODO: убрать это в отдельный метод в модель User
-    existingUser = await registered(msg.from_user.id, db)
-    if existingUser is None:
+    async with db.session() as session:
+        existUser: bool = await is_registered(session, msg.from_user.id)
+    if not existUser:
         from handlers.registerHandler import start
 
         return await start(msg=msg, state=state, username=username, db=db)
@@ -58,8 +50,10 @@ async def menuCallback(callback: CallbackQuery, username: str, state: FSMContext
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>menu</b> callback")
 
     # TODO: убрать это в отдельный метод в модель User
-    existingUser = await registered(callback.from_user.id, db)
-    if existingUser is None:
+    async with db.session() as session:
+        async with session.begin():
+            existUser: bool = await is_registered(session, callback.from_user.id)
+    if not existUser:
         from handlers.registerHandler import start
 
         await callback.answer("Вы не зарегистрированы")
@@ -83,7 +77,9 @@ async def timetableForDay(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>timetable</b> callback")
 
     # TODO: убрать это в отдельный метод в модель User
-    existingUser = await registered(callback.from_user.id, db)
+    async with db.session() as session:
+        async with session.begin():
+            existingUser: User = await get_user_by_id(session, callback.from_user.id)
     if existingUser is None:
         return await callback.answer("Вы не зарегистрированы!")
 
@@ -170,8 +166,10 @@ async def settings(callback: CallbackQuery, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
 
     # TODO: убрать это в отдельный метод в модель User
-    existingUser = await registered(callback.from_user.id, db)
-    if existingUser is None:
+    async with db.session() as session:
+        async with session.begin():
+            existUser: bool = await is_registered(session, callback.from_user.id)
+    if not existUser:
         return await callback.answer("Вы не зарегистрированы!")
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text="Обратная связь", callback_data="feedback"))
@@ -182,26 +180,19 @@ async def settings(callback: CallbackQuery, username: str, db) -> None:
 
 
 @router.callback_query(F.data == "delete_user")
-async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
+async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, db, bot: Bot) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>delete_user</b> callback")
-    from sqlalchemy import delete
-
-    from models.user import User
-
+    user_id = callback.from_user.id
     # TODO: убрать это в отдельный метод в модель User
-    session = db.session
-    userId = callback.from_user.id
-    result = await session.execute(select(User).filter_by(id=userId))
-    existingUser = result.scalars().first()
-    if existingUser is None:
-        await callback.answer("Вы не зарегистрированы!")
-    else:
-        await session.execute(delete(User).where(User.id == userId))
-        await session.commit()
-        await callback.answer("Вы успешно удалили свой аккаунт")
-    await session.close()
+    async with db.session() as session:
+        async with session.begin():
+            existUser: bool = await is_registered(session, user_id)
+            if not existUser:
+                await callback.answer("Вы не зарегистрированы!")
+            else:
+                await delete_user(session, user_id)
+                await callback.answer("Вы успешно удалили свой аккаунт")
+
     await callback.message.delete()
-    # TODO: Удалить весь чат
-    from handlers.registerHandler import start
 
     return await start(msg=callback.message, state=state, username=username, db=db)

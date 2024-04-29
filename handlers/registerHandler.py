@@ -6,8 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
-from sqlalchemy.future import select
 
+from database.services.user import create_user, is_registered
 from filters.dispatcherFilters import IsPrivate
 from forms.register import Register
 from utils.ScheduleParser import scheduleParser
@@ -16,19 +16,8 @@ router = Router(name="registerHandler")
 router.message.filter(IsPrivate)
 
 
-# TODO: Вынести fork_maker в botMethods
+# TODO: Вынести form_maker в botMethods
 # TODO: Добавить логирование
-
-
-async def registered(id, db):
-    from models.user import User
-
-    session = db.session
-    userId = id
-    result = await session.execute(select(User).filter_by(id=userId))
-    existingUser = result.scalars().first()
-    await session.close()
-    return existingUser
 
 
 # Universal function to handle registration steps
@@ -110,8 +99,11 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
 async def start(msg: Message, state: FSMContext, username: str, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/start</b> command")
 
-    existingUser = await registered(msg.from_user.id, db)
-    if existingUser is not None:
+    async with db.session() as session:
+        async with session.begin():
+            existUser: bool = await is_registered(session, msg.from_user.id)
+
+    if existUser:
         from handlers.mainHandler import menu
 
         return await menu(msg=msg, username=username, state=state, db=db)
@@ -158,35 +150,23 @@ async def get_group(callback: CallbackQuery, state: FSMContext, username: str, d
 
     state_data = await state.get_data()
 
-    userId = callback.from_user.id
     group = list(state_data["tableObj"].keys())[int(callback.data[len("group_") :])]
-    from models.user import User
 
-    new_user = User(
-        id=userId,
-        course=state_data["course"],
-        direction=state_data["direction"],
-        profile=state_data["profile"],
-        group=group,
-    )
-
-    session = db.session
-    result = await session.execute(select(User).filter_by(id=userId))
-    existingUser = result.scalars().first()
-
-    if existingUser is None:
-        # Добавляем пользователя в сессию
-        session.add(new_user)
-
-        await session.commit()
-        await session.close()
-        await state.clear()
-
+    async with db.session() as session:
+        async with session.begin():
+            result: bool = await create_user(
+                session=session,
+                user_id=callback.from_user.id,
+                course=state_data["course"],
+                direction=state_data["direction"],
+                profile=state_data["profile"],
+                group=group,
+            )
+    await state.clear()
+    if result:
         await callback.answer("Вы успешно зарегистрированы!")
         from handlers.mainHandler import menuCallback
 
         return await menuCallback(callback=callback, username=username, state=state, db=db)
-    else:
-        await session.close()
-        await callback.answer("Вы уже зарегистрированы!")
-        await state.clear()
+
+    await callback.answer("Вы уже зарегистрированы!")

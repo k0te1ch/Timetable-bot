@@ -7,6 +7,7 @@ from aiogram.types import Message
 from aiogram.utils.chat_action import ChatActionSender
 
 from config import LANGUAGES
+from database.database import db
 
 
 class GeneralMiddleware(BaseMiddleware):
@@ -32,8 +33,6 @@ class GeneralMiddleware(BaseMiddleware):
             data["username"] = event.from_user.username
 
         if "db" in handlerArgs:
-            from bot import db
-
             data["db"] = db
 
         return await handler(event, data)

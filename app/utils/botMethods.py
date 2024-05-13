@@ -1,9 +1,8 @@
 import zipfile
 from pathlib import Path
 
-from loguru import logger
-
 from config import LOGS_PATH
+from loguru import logger
 
 # TODO: Необходимо реализовать выключение бота в докере и если просто запущен просто так
 # TODO: Необходимо реализовать перезагрузку скрипта (вывод ошибки если запущен не в докере)

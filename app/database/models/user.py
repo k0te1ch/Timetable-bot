@@ -1,6 +1,5 @@
-from sqlalchemy import BigInteger, Column, String, UniqueConstraint
-
 from database.database import db
+from sqlalchemy import BigInteger, Column, String, UniqueConstraint
 
 
 class User(db.Model):

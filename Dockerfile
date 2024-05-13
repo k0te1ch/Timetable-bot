@@ -35,10 +35,10 @@ CMD ["poetry", "run", "pytest"]
 # Stage 3: Этап для выполнения миграции
 FROM base as migrate
 
-CMD ["python", "bot.py", "migrate"]
+CMD ["python", "app/bot.py", "migrate"]
 
 
 # Stage 4: Финальный рабочий образ
 FROM base as final
 
-CMD ["python", "bot.py", "run"]
+CMD ["python", "app/bot.py", "run"]

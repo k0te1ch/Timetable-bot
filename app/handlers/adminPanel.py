@@ -1,9 +1,8 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, FSInputFile, Message, ReplyKeyboardRemove
-from loguru import logger
-
 from filters.dispatcherFilters import IsAdmin, IsPrivate
+from loguru import logger
 from utils.botMethods import get_logs, shutdown_bot
 from utils.context import context
 from utils.keyboards import keyboards

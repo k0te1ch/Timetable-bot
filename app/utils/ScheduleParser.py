@@ -4,10 +4,9 @@ from collections import OrderedDict
 
 import openpyxl
 import requests
+from config import CS_URL, TIMETABLE_PATH
 from lxml import etree
 from lxml.etree import ParserError
-
-from config import CS_URL, TIMETABLE_PATH
 
 # TODO: Сделать аннотации
 # TODO: Логирование
@@ -239,4 +238,4 @@ if __name__ == "__main__":
     )
 
     print(table)
-    print(scheduleParser.getFreeAudiences("Понедельник", "8:00 - 9:35", "Числитель"))
+    print(scheduleParser.getFreeAudiences("Среда", "9:45 - 11:20", "Числитель"))

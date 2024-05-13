@@ -2,9 +2,8 @@ import importlib
 import inspect
 from typing import Union
 
-from loguru import logger
-
 from config import CONTEXT_FILE
+from loguru import logger
 
 
 class _Context:

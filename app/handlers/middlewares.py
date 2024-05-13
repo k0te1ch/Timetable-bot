@@ -5,7 +5,6 @@ from aiogram.dispatcher.flags import get_flag
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from aiogram.types import Message
 from aiogram.utils.chat_action import ChatActionSender
-
 from config import LANGUAGES
 from database.database import db
 

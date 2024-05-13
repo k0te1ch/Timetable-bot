@@ -5,11 +5,11 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from loguru import logger
-
 from database.services.user import create_user, is_registered
 from filters.dispatcherFilters import IsPrivate
+from forms.form_utils import handle_step
 from forms.register import Register
+from loguru import logger
 from utils.ScheduleParser import scheduleParser
 
 router = Router(name="registerHandler")
@@ -20,8 +20,6 @@ router.message.filter(IsPrivate)
 # TODO: Добавить логирование
 
 
-# Universal function to handle registration steps
-# form_maker
 async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -> None:
 
     steps: tuple[str] = Register.__state_names__
@@ -94,6 +92,10 @@ async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -
     await callback.answer(callback_text)
 
 
+# Universal function to handle registration steps
+# form_maker
+
+
 # Handle /start command
 @router.message(F.text, CommandStart())
 async def start(msg: Message, state: FSMContext, username: str, db) -> None:
@@ -126,22 +128,31 @@ async def start(msg: Message, state: FSMContext, username: str, db) -> None:
 # Handle registration steps
 @router.callback_query(F.data == "back", StateFilter(Register))
 async def handle_back(callback: CallbackQuery, state: FSMContext) -> None:
-    await handle_registration_step(callback, state)
+    await handle_step(
+        callback,
+        state,
+        Register,
+        "tableObj",
+        "tableObjGlob",
+        ["ваш курс", "ваше направление", "ваш профиль", "вашу группу"],
+        "Регистрация: Выберете ",
+        "регистрации",
+    )
 
 
 @router.callback_query(F.data.contains("course_"), Register.course)
 async def get_course(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-    await handle_registration_step(callback, state)
+    await handle_step(callback, state)
 
 
 @router.callback_query(F.data.contains("direction_"), Register.direction)
 async def get_direction(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-    await handle_registration_step(callback, state)
+    await handle_step(callback, state)
 
 
 @router.callback_query(F.data.contains("profile_"), Register.profile)
 async def get_profile(callback: CallbackQuery, state: FSMContext, username: str) -> None:
-    await handle_registration_step(callback, state)
+    await handle_step(callback, state)
 
 
 @router.callback_query(F.data.contains("group_"), Register.group)

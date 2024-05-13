@@ -5,13 +5,12 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from loguru import logger
-
 from config import TIMEZONE
 from database.models.user import User
 from database.services.user import delete_user, get_user_by_id, is_registered
 from filters.dispatcherFilters import IsPrivate
 from handlers.registerHandler import start
+from loguru import logger
 from utils.ScheduleParser import scheduleParser
 
 router = Router(name="mainHandler")

@@ -1,5 +1,6 @@
 import asyncio
 
+from config import DATABASE_URL
 from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,8 +12,6 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, declarative_base, scoped_session, sessionmaker
-
-from config import DATABASE_URL
 
 
 class Base(AsyncAttrs, DeclarativeBase):

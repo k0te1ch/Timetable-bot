@@ -5,10 +5,9 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from loguru import logger
-
 from filters.dispatcherFilters import IsPrivate
 from forms.free_audiences import FreeAudiences
+from loguru import logger
 from utils.ScheduleParser import scheduleParser
 
 # TODO: Добавить кнопку отмены

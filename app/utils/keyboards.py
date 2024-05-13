@@ -4,9 +4,8 @@ import os
 from typing import Any
 
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
-from loguru import logger
-
 from config import KEYBOARDS, KEYBOARDS_DIR
+from loguru import logger
 
 
 class _Keyboards:

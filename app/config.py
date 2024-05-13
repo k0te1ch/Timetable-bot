@@ -13,7 +13,7 @@ from pytz import timezone
 def loadEnv():
     env_file = os.getenv("ENVFILE", ".env")
     if env_file.endswith(".env"):
-        env_path = Path(".") / env_file
+        env_path = Path.cwd() / env_file
         load_dotenv(dotenv_path=env_path, override=True)
 
 
@@ -33,7 +33,7 @@ def get_env_str(env_key: str, default: str = None, required: bool = False) -> st
     env_val = os.getenv(env_key, default)
     if env_val is None or isinstance(env_val, str) and env_val.lower() == "none":
         if required:
-            raise NameError(f'name "{env_val}" is not defined in your env file')
+            raise NameError(f'name "{env_key}" is not defined in your env file')
         return None
     return env_val
 
@@ -61,11 +61,22 @@ def set_up_logger(log_level: str, logs_path: Path):
 
 loadEnv()
 
+# SOURCES OF PROJECT
+PROJECT_PATH = Path.cwd()
 SRC_PATH = Path(__file__).parent
+# TODO: make method for paths
+TIMETABLE_FILENAME: Path = get_env_str("TIMETABLE_FILENAME", default="timetable.xlsx", required=True)
+CONTEXT_FILE: Path = get_env_str("CONTEXT_FILE", default="context")
+
+KEYBOARDS_DIR: Path = get_env_str("KEYBOARDS_DIR", default="keyboards")
+HANDLERS_DIR: Path = get_env_str("HANDLERS_DIR", default="handlers")
+MODELS_DIR: Path = get_env_str("MODELS_DIR", default="models")
+FILES_PATH: Path = PROJECT_PATH / get_env_str("FILES_PATH", default="files")
+TIMETABLE_PATH: Path = FILES_PATH / TIMETABLE_FILENAME
 
 # LOGGER SETTINGS
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOGS_PATH = SRC_PATH / "logs"
+LOGS_PATH = PROJECT_PATH / "logs"
 set_up_logger(LOG_LEVEL, LOGS_PATH)
 
 
@@ -91,11 +102,6 @@ DATABASE_URL = get_env_str("DATABASE_URL", required=True)
 
 REDIS_URL = get_env_str("REDIS_URL", default="redis://redis:6379/0", required=True)
 
-KEYBOARDS_DIR = get_env_str("KEYBOARDS_DIR", default="keyboards")
-HANDLERS_DIR = get_env_str("HANDLERS_DIR", default="handlers")
-MODELS_DIR = get_env_str("MODELS_DIR", default="models")
-CONTEXT_FILE = get_env_str("CONTEXT_FILE", default="context")
-
 ENABLE_APSCHEDULER = get_env_bool("ENABLE_APSCHEDULER", default=True)
 
 # TODO: Создать функцию, которая будет импортировать списки
@@ -106,14 +112,6 @@ HANDLERS = json.loads(get_env_str("HANDLERS"))
 KEYBOARDS = json.loads(get_env_str("KEYBOARDS"))
 
 LANGUAGES = json.loads(get_env_str("LANGUAGES"))
-
-
-# SOURCES OF PROJECT
-# TODO: make method for paths
-TIMETABLE_FILENAME = get_env_str("TIMETABLE_FILENAME", default="timetable.xlsx", required=True)
-
-FILES_PATH: Path = SRC_PATH / get_env_str("FILES_PATH", default="files")
-TIMETABLE_PATH: Path = FILES_PATH / TIMETABLE_FILENAME
 
 
 # make dirs

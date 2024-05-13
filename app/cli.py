@@ -4,15 +4,14 @@ import importlib
 import os
 from datetime import datetime
 
+import bot
 import click
 from alembic import command as alembic
 from alembic.command import revision as alembic_revision
 from alembic.config import Config
 from alembic.util.exc import CommandError
-from loguru import logger
-
-import bot
 from config import DATABASE_URL, ENABLE_APSCHEDULER, MODELS_DIR, SKIP_UPDATES
+from loguru import logger
 
 
 @logger.catch

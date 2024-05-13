@@ -8,11 +8,10 @@ from aiogram.fsm.storage.redis import RedisStorage
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from loguru import logger
-from redis.asyncio import Redis
-
 from handlers import adminPanel, feedbackHandler, free_audiences_handler, mainHandler, registerHandler
 from handlers.middlewares import GeneralMiddleware
+from loguru import logger
+from redis.asyncio import Redis
 
 # TODO: Создать отдельную директорию для middlewares
 

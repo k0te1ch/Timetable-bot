@@ -8,7 +8,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from handlers import ROUTERS
 from handlers.middlewares import GeneralMiddleware
 from loguru import logger
-from services import _NoneModule
+from services.none_module import _NoneModule
 from services.redis import redis
 
 # TODO: Создать отдельную директорию для middlewares (зачем?)

@@ -3,9 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 from database.services.user import delete_user, is_registered
 from filters.dispatcherFilters import IsPrivate
+from handlers.admin_panel import start
 from loguru import logger
-
-from app.handlers.admin_panel import start
 
 router = Router(name="user_handler")
 router.message.filter(IsPrivate)

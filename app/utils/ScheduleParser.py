@@ -28,7 +28,7 @@ from lxml.etree import ParserError
 
 class ScheduleParser:
     """
-    Класс для парсинга таблицы с расписанием занятий и преобразования ее в словарь объектов.
+    Class to parse the timetable spreadsheet and convert it into a dictionary of objects.
     """
 
     _time: set[str] = set()
@@ -42,6 +42,9 @@ class ScheduleParser:
         self._makeFreeAudiences()
 
     async def updateTable(self) -> None:
+        """
+        Update the timetable by downloading and parsing the latest data.
+        """
         # TODO: Необходимо сделать уведомление о изменении связанное с парами
         # TODO: Изменённую пару добавить в APScheduler
         self._tableObj = None
@@ -49,6 +52,7 @@ class ScheduleParser:
         self._freeAudiences = None
         self._toObject(self._parse(self._downloadTable()))
         self._makeFreeAudiences()
+        logger.info("Timetable updated successfully")
 
     async def get_time(self) -> set[str]:
         return self._time
@@ -57,23 +61,24 @@ class ScheduleParser:
         try:
             parser = etree.HTMLParser()
             dom = etree.HTML(requests.get(CS_URL).content, parser)
-        except ParserError as e:
-            print(e)
-        idTable = re.findall(r"\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
-        from utils.HTTPMethods import downloadFile
 
-        downloadFile(
-            f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH
-        )
-        logger.opt(colors=True).debug("<g>Updated table</g>")
-        return TIMETABLE_PATH
+            idTable = re.findall(r"\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
+            from utils.HTTPMethods import downloadFile
+
+            downloadFile(
+                f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH
+            )
+            logger.opt(colors=True).debug("<g>Updated table</g>")
+            return TIMETABLE_PATH
+        except (requests.RequestException, ParserError) as e:
+            logger.error(f"Error downloading the timetable: {e}")
 
     def _parse(self, filename):
         try:
             workbook = openpyxl.load_workbook(filename)
             sheet = workbook.active
         except FileNotFoundError as e:
-            print(e)
+            logger.error(f"File not found: {e}")
 
         maxRows = sheet.max_row
         maxCols = sheet.max_column
@@ -94,46 +99,26 @@ class ScheduleParser:
                 for row in range(rl - 1, rr):
                     table_list[row][c] = value
 
-        delete = []
-        for r in range(maxRows):
-            remove = True
-            for c in range(maxCols):
-                if table_list[r][c] not in ["None", ""]:
-                    remove = False
-                    break
-            if remove:
-                delete.insert(0, r)
-        for i in delete:
-            maxRows -= 1
-            table_list.pop(i)
-        self._table = table_list
-        return table_list
+        self._table = [row for row in table_list if row and any(cell not in ["None", ""] for cell in row)]
+
+        return self._table
 
     def _toObject(self, table):
         objects = OrderedDict()
         for i in range(2, len(table[0])):
-            course = table[0][i].strip()
-            group = table[1][i].strip()
-            direction = table[2][i].strip()
-            profile = table[3][i].strip()
+            course, group, direction, profile = (table[j][i].strip() for j in range(4))
             timetable = OrderedDict({"Числитель": OrderedDict(), "Знаменатель": OrderedDict()})
             numerator = True
             for d in range(4, len(table)):
-                day = table[d][0].strip()
-                time = table[d][1].strip().replace(" - ", "-").replace("-", " - ")
+                day, time = table[d][0].strip(), table[d][1].strip().replace(" - ", "-").replace("-", " - ")
                 subject = table[d][i].strip()
 
                 self._time.add(time)
 
-                regular = re.findall(
-                    r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
-                    subject,
-                )
-                if len(regular) > 0:
+                if regular := re.findall(r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$", subject):
                     _, rank, teacher, audience = regular[0]  # TODO subject
                     self._audiences.add(audience)
-                regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
-                if len(regular) > 0:
+                elif regular := re.findall(r"(.*?) (.*?) (\d+\S)$", subject):
                     _, teacher, audience = regular[0]  # TODO subject
                     self._audiences.add(audience)
 

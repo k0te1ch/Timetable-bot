@@ -1,5 +1,3 @@
-from typing import Any
-
 from aiogram import F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -12,78 +10,6 @@ from loguru import logger
 from utils.ScheduleParser import scheduleParser
 
 # TODO: Добавить кнопку отмены
-
-
-async def handle_registration_step(callback: CallbackQuery, state: FSMContext) -> None:
-
-    steps: tuple[str] = FreeAudiences.__state_names__
-    current_state: str = await state.get_state()
-    indexStep: int = steps.index(current_state)
-    state_data: dict[str, Any] = await state.get_data()
-    free_audiences: dict[str, Any] = state_data["free_audiences"]
-
-    if callback.data == "back":
-
-        await state.clear()
-        indexStep -= 1
-        current_state = steps[indexStep]
-        state_data.pop(current_state.split(":")[-1])
-        free_audiences = state_data["free_audiences_Glob"]
-        for key in FreeAudiences.__states__:
-            if key._state in state_data:
-                free_audiences = free_audiences[state_data[key._state]]
-
-        state_data["free_audiences"] = free_audiences
-        await state.set_state(current_state)
-
-        await state.update_data(state_data)
-        callback_text = "Вы вернулись на предыдущий этап поиска свободной аудитории"
-        while len(free_audiences) == 1 and indexStep != 0:
-            await state.clear()
-            indexStep -= 1
-            current_state = steps[indexStep]
-            state_data.pop(current_state.split(":")[-1])
-            free_audiences = state_data["free_audiences_Glob"]
-            for key in FreeAudiences.__states__:
-                if key._state in state_data:
-                    free_audiences = free_audiences[state_data[key._state]]
-
-            state_data["free_audiences"] = free_audiences
-            await state.set_state(current_state)
-            await state.update_data(state_data)
-
-    elif callback.data.startswith(f"{current_state.split(':')[-1]}_"):
-        selected_value = list(free_audiences.keys())[int(callback.data.split("_")[-1])]
-        free_audiences = free_audiences[selected_value]
-        await state.update_data({current_state.split(":")[-1]: selected_value, "free_audiences": free_audiences})
-        indexStep += 1
-        current_state = steps[indexStep]
-        await state.set_state(current_state)
-        callback_text = f'Вы выбрали "{selected_value}"'
-
-        while len(free_audiences) == 1 and indexStep != 3:
-            # Автоматически выбираем единственный вариант
-            next_selected_value = list(free_audiences.keys())[0]
-            free_audiences = free_audiences[next_selected_value]
-            await state.update_data(
-                {current_state.split(":")[-1]: next_selected_value, "free_audiences": free_audiences}
-            )
-            indexStep += 1
-            current_state = steps[indexStep]
-            await state.set_state(current_state)
-    else:
-        return
-
-    keyboard = InlineKeyboardBuilder()
-    for num, key in enumerate(free_audiences.keys()):
-        keyboard.row(InlineKeyboardButton(text=key, callback_data=f"{current_state.split(':')[-1]}_{num}"))
-
-    if indexStep != 0:
-        keyboard.row(InlineKeyboardButton(text="Назад", callback_data="back"))
-
-    step_text = "Поиск свободной аудитории: Выберете " + ["день", "нужное время", "числитель/знаменатель"][indexStep]
-    await callback.message.edit_text(step_text, reply_markup=keyboard.as_markup(resize_keyboard=True))
-    await callback.answer(callback_text)
 
 
 router = Router(name="free_audiences_handler")

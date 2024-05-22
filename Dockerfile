@@ -11,8 +11,7 @@ COPY pyproject.toml poetry.lock /app/
 RUN python -m pip install -U pip && \
     python -m pip install -U poetry
 
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-dev
+RUN poetry install --no-dev
 
 # FIXME: Костыль
 RUN apt-get update && apt-get install -y locales

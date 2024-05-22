@@ -3,7 +3,6 @@ import asyncio
 from config import DATABASE_URL
 from loguru import logger
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
     AsyncSession,
@@ -12,6 +11,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, declarative_base, scoped_session, sessionmaker
+
+# TODO сделать универсальность между async/sync sqlalchemy
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -49,29 +50,6 @@ class _AsyncSQLAlchemy:
 
     def _scopefunc(self):
         return asyncio.current_task()
-
-    async def __aenter__(self):
-        self.session = await self.session()
-        print("enter")
-        return self.session
-
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        print("exit")
-        if exc_type is not None:
-            logger.error(f"Exception occurred: {exc_type}, {exc_value}")
-            await self.session.rollback()
-            logger.error("Rolled back due to exception")
-        else:
-            try:
-                await self.session.commit()
-                logger.info("Committed successfully")
-            except SQLAlchemyError as commit_error:
-                logger.error(f"Error occurred during commit: {commit_error}")
-        try:
-            await self.session.close()
-            logger.debug("Session closed")
-        except SQLAlchemyError as close_error:
-            logger.error(f"Error occurred during session close: {close_error}")
 
 
 class _NotDefinedModule(Exception):

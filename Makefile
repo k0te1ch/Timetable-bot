@@ -10,6 +10,12 @@ requirements: pip-tools
 run:
 	python app/bot.py run
 
+async-makemigrations:
+	python app/bot.py makemigrations -s False
+
+async-migrate:
+	python app/bot.py migrate -s False
+
 test:
 	poetry run pytest --cov=.
 

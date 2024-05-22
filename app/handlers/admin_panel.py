@@ -3,9 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, FSInputFile, Message, ReplyKeyboardRemove
 from filters.dispatcherFilters import IsAdmin, IsPrivate
 from loguru import logger
+from services.context import context
+from services.keyboards import keyboards
 from utils.botMethods import get_logs, shutdown_bot
-from utils.context import context
-from utils.keyboards import keyboards
 
 # TODO: add callback fabric
 router = Router(name="admin_panel")

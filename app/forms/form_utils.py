@@ -6,8 +6,11 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+# TODO: add annotation
+# TODO: need refactoring
 
-async def handle_step(
+
+async def form_step(
     callback: CallbackQuery,
     state: FSMContext,
     stateCls: StatesGroup,
@@ -39,7 +42,6 @@ async def handle_step(
         await state.set_state(current_state)
 
         await state.update_data(state_data)
-        # TODO: Автоматом скипать кнопку, если она одна
         callback_text = f"Вы вернулись на предыдущий этап {name}"
         while len(tableObj) == 1 and indexStep != 0:
             # Автоматически выбираем единственный вариант

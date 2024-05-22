@@ -6,7 +6,8 @@ from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from aiogram.types import Message
 from aiogram.utils.chat_action import ChatActionSender
 from config import LANGUAGES
-from database.database import db
+from database import db
+from database.services.user import get_user_by_id, is_registered
 
 
 class GeneralMiddleware(BaseMiddleware):
@@ -33,6 +34,16 @@ class GeneralMiddleware(BaseMiddleware):
 
         if "db" in handlerArgs:
             data["db"] = db
+
+        if "existingUser" in handlerArgs:
+            async with db.session() as session:
+                async with session.begin():
+                    data["existingUser"] = await get_user_by_id(session, event.from_user.id)
+
+        if "existUser" in handlerArgs:
+            async with db.session() as session:
+                async with session.begin():
+                    data["existUser"] = await is_registered(session, event.from_user.id)
 
         return await handler(event, data)
 

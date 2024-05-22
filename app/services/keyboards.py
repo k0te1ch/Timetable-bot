@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
-from config import KEYBOARDS, KEYBOARDS_DIR
+from config import KEYBOARDS, KEYBOARDS_DIR, KEYBOARDS_PATH
 from loguru import logger
 
 
@@ -66,7 +66,7 @@ class _Keyboards:
 
 @logger.catch
 def _get_keyboards_obj() -> dict:
-    keyboards = [m[:-3] for m in os.listdir(KEYBOARDS_DIR) if m.endswith(".py") and m[:-3] in KEYBOARDS]
+    keyboards = [m[:-3] for m in os.listdir(KEYBOARDS_PATH) if m.endswith(".py") and m[:-3] in KEYBOARDS]
     logger.opt(colors=True).debug(f"Loading <y>{len(keyboards)}</y> keyboards")
     tmp = {}
     for keyboard in keyboards:
@@ -76,4 +76,4 @@ def _get_keyboards_obj() -> dict:
     return tmp
 
 
-keyboards = _get_keyboards_obj()
+keyboards: _Keyboards = _get_keyboards_obj()

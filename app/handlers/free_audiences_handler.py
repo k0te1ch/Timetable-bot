@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from filters.dispatcherFilters import IsPrivate
+from forms.form_utils import form_step
 from forms.free_audiences import FreeAudiences
 from loguru import logger
 from utils.ScheduleParser import scheduleParser
@@ -111,19 +112,46 @@ async def free_audiences(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "back", StateFilter(FreeAudiences))
 async def handle_back(callback: CallbackQuery, state: FSMContext, username: str) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Go to back state")
-    await handle_registration_step(callback, state)
+    await form_step(
+        callback,
+        state,
+        FreeAudiences,
+        "free_audiences",
+        "free_audiences_glob",
+        ["день", "нужное время", "числитель/знаменатель"],
+        "Поиск свободной аудитории: Выберете ",
+        "поиска свободной аудитории",
+    )
 
 
 @router.callback_query(F.data.contains("day_"), FreeAudiences.day)
 async def get_day(callback: CallbackQuery, state: FSMContext, username: str) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get day")
-    await handle_registration_step(callback, state)
+    await form_step(
+        callback,
+        state,
+        FreeAudiences,
+        "free_audiences",
+        "free_audiences_glob",
+        ["день", "нужное время", "числитель/знаменатель"],
+        "Поиск свободной аудитории: Выберете ",
+        "поиска свободной аудитории",
+    )
 
 
 @router.callback_query(F.data.contains("time_"), FreeAudiences.time)
 async def get_time(callback: CallbackQuery, state: FSMContext, username: str) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Get time")
-    await handle_registration_step(callback, state)
+    await form_step(
+        callback,
+        state,
+        FreeAudiences,
+        "free_audiences",
+        "free_audiences_glob",
+        ["день", "нужное время", "числитель/знаменатель"],
+        "Поиск свободной аудитории: Выберете ",
+        "поиска свободной аудитории",
+    )
 
 
 @router.callback_query(F.data.contains("numerator_"), FreeAudiences.numerator)

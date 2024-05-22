@@ -49,6 +49,7 @@ async def create_user(session: AsyncSession, user_id: int, course: str, directio
         direction=direction,
         profile=profile,
         group=group,
+        send_notifications=True,
     )
     session.add(obj)
     await session.flush()
@@ -72,3 +73,16 @@ async def delete_user(session: AsyncSession, user_id: int) -> bool:
 
     await session.execute(stmt)
     return True
+
+
+async def get_users_for_notify(session: AsyncSession) -> list[User]:
+    """
+    Get `User` objects for notification
+    :param session: An `AsyncSession` object
+    :return: `List[User]`
+    """
+
+    stmt = select(User).where(User.send_notifications)
+
+    result = await session.execute(stmt)
+    return result.scalars().all()

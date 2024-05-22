@@ -1,3 +1,5 @@
+# NOT WORKING IN *NIX
+
 pip-tools:
 	python -m pip install -U pip
 	python -m pip install -U poetry

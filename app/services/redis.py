@@ -1,8 +1,7 @@
 from config import REDIS_URL
 from loguru import logger
 from redis.asyncio import Redis
-
-from . import _NoneModule
+from services import _NoneModule
 
 
 def _get_redis_obj() -> Redis | _NoneModule:

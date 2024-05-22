@@ -4,8 +4,7 @@ from typing import Union
 
 from config import CONTEXT_FILE
 from loguru import logger
-
-from . import _NoneModule
+from services import _NoneModule
 
 
 class _Context:

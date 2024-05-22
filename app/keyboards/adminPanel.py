@@ -1,7 +1,7 @@
 # TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils.context import context
+from services import context
 
 # TODO Когда загружается бот, если кнопки используются, то мы их создаём и храним в памяти
 # TODO Добавить типы во всех функции

@@ -5,6 +5,7 @@ from collections import OrderedDict
 import openpyxl
 import requests
 from config import CS_URL, TIMETABLE_PATH
+from loguru import logger
 from lxml import etree
 from lxml.etree import ParserError
 
@@ -21,6 +22,8 @@ from lxml.etree import ParserError
 # TODO: Расписание для преподавателей (просто отталкиваемся от преподов)
 # TODO: Property
 # TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
+# TODO: Получать расписание по объекту `User`
+# TODO: Рефакторинг
 
 
 class ScheduleParser:
@@ -28,6 +31,8 @@ class ScheduleParser:
     Класс для парсинга таблицы с расписанием занятий и преобразования ее в словарь объектов.
     """
 
+    _time: set[str] = set()
+    _table: list[list[str]] = None
     _tableObj: OrderedDict[any] = None
     _freeAudiences: OrderedDict[any] = None
     _audiences: set[str] = set()
@@ -35,6 +40,18 @@ class ScheduleParser:
     def __init__(self):
         self._toObject(self._parse(self._downloadTable()))
         self._makeFreeAudiences()
+
+    async def updateTable(self) -> None:
+        # TODO: Необходимо сделать уведомление о изменении связанное с парами
+        # TODO: Изменённую пару добавить в APScheduler
+        self._tableObj = None
+        self._table = None
+        self._freeAudiences = None
+        self._toObject(self._parse(self._downloadTable()))
+        self._makeFreeAudiences()
+
+    async def get_time(self) -> set[str]:
+        return self._time
 
     def _downloadTable(self) -> str:
         try:
@@ -48,6 +65,7 @@ class ScheduleParser:
         downloadFile(
             f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH
         )
+        logger.opt(colors=True).debug("<g>Updated table</g>")
         return TIMETABLE_PATH
 
     def _parse(self, filename):
@@ -88,6 +106,7 @@ class ScheduleParser:
         for i in delete:
             maxRows -= 1
             table_list.pop(i)
+        self._table = table_list
         return table_list
 
     def _toObject(self, table):
@@ -104,6 +123,8 @@ class ScheduleParser:
                 time = table[d][1].strip().replace(" - ", "-").replace("-", " - ")
                 subject = table[d][i].strip()
 
+                self._time.add(time)
+
                 regular = re.findall(
                     r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
                     subject,
@@ -115,6 +136,7 @@ class ScheduleParser:
                 if len(regular) > 0:
                     _, teacher, audience = regular[0]  # TODO subject
                     self._audiences.add(audience)
+
                 key = "Числитель" if numerator else "Знаменатель"
                 if day not in timetable[key]:
                     timetable[key][day] = OrderedDict()
@@ -141,6 +163,28 @@ class ScheduleParser:
 
     def _toText(self, object) -> str:
         return ""
+
+    def getScheduleForTime(self, course, direction, profile, group, numerator, day, time):
+        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
+
+        # Проверка на Воскресенье
+        if day == "Воскресенье":
+            return f"{day}, ({numerator})\n\nВыходной!"
+
+        # Проходим по ключам, чтобы добраться до расписания
+        for key in (course, direction, profile, group, numerator, day):
+            if key in tempObj:
+                tempObj = tempObj[key]
+            else:
+                return f"{day}, ({numerator})\n\n{time} => Нет данных!"
+
+        # Получаем расписание на указанное время
+        subject = tempObj.get(time, "None")
+
+        # Формирование результата
+        if subject == "None":
+            subject = "Окно"
+        return f"{day}, ({numerator})\n\n{time} => {subject}"
 
     def getScheduleForDay(self, course, direction, profile, group, numerator, day):
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
@@ -239,3 +283,14 @@ if __name__ == "__main__":
 
     print(table)
     print(scheduleParser.getFreeAudiences("Среда", "9:45 - 11:20", "Числитель"))
+    print(
+        scheduleParser.getScheduleForTime(
+            "2 курс",
+            'Направление "Прикладная информатика"',
+            'профиль "Прикладная информатика в экономике"',
+            "13.1 группа",
+            "Числитель",
+            "Понедельник",
+            "8:00 - 9:35",
+        )
+    )

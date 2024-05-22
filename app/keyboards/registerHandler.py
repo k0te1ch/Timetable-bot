@@ -1,7 +1,7 @@
 # TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 from aiogram.types import KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from utils.context import context
+from services import context
 
 # TODO переписать кнопки для других целей
 

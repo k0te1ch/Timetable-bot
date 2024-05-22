@@ -1,5 +1,9 @@
 from database.database import db
-from sqlalchemy import BigInteger, Column, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, String, UniqueConstraint
+from sqlalchemy.sql import func
+
+# TODO: Добавить дату регистрации аккаунта
+# TODO: Добавить роли: бакалавр, специалист (тоже самое, что и бакалавр), магистр, преподаватель, администратор
 
 
 class User(db.Model):
@@ -11,3 +15,5 @@ class User(db.Model):
     direction = Column(String(128), nullable=False)
     profile = Column(String(128), nullable=False)
     group = Column(String(128), nullable=False)
+    send_notifications = Column(Boolean, nullable=False, default=True)
+    registration_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

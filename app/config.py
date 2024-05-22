@@ -63,16 +63,16 @@ loadEnv()
 
 # SOURCES OF PROJECT
 PROJECT_PATH = Path.cwd()
-SRC_PATH = Path(__file__).parent
+APP_PATH = Path(__file__).parent
 # TODO: make method for paths
 TIMETABLE_FILENAME: Path = get_env_str("TIMETABLE_FILENAME", default="timetable.xlsx", required=True)
 CONTEXT_FILE: Path = get_env_str("CONTEXT_FILE", default="context")
 
-KEYBOARDS_DIR: Path = get_env_str("KEYBOARDS_DIR", default="keyboards")
-HANDLERS_DIR: Path = get_env_str("HANDLERS_DIR", default="handlers")
-MODELS_DIR: Path = get_env_str("MODELS_DIR", default="models")
+KEYBOARDS_DIR = get_env_str("KEYBOARDS_DIR", default="keyboards")
+HANDLERS_DIR = get_env_str("HANDLERS_DIR", default="handlers")
 FILES_PATH: Path = PROJECT_PATH / get_env_str("FILES_PATH", default="files")
 TIMETABLE_PATH: Path = FILES_PATH / TIMETABLE_FILENAME
+KEYBOARDS_PATH: Path = APP_PATH / KEYBOARDS_DIR
 
 # LOGGER SETTINGS
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

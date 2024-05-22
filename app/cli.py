@@ -1,6 +1,5 @@
 # TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 import asyncio
-import importlib
 import os
 from datetime import datetime
 
@@ -10,29 +9,30 @@ from alembic import command as alembic
 from alembic.command import revision as alembic_revision
 from alembic.config import Config
 from alembic.util.exc import CommandError
-from config import DATABASE_URL, ENABLE_APSCHEDULER, MODELS_DIR, SKIP_UPDATES
+from config import DATABASE_URL, ENABLE_APSCHEDULER, SKIP_UPDATES
 from loguru import logger
+from services import init_scheduler_jobs, scheduler
 
 
 @logger.catch
 def get_alembic_conf(sync: bool = False):
     alembic_cfg = Config()
-    alembic_cfg.set_main_option("script_location", "migrations")
+    alembic_cfg.set_main_option("script_location", "app/database/migrations")
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
-    alembic_cfg.config_file_name = os.path.join("migrations", "alembic.ini")
-    if os.path.isdir("migrations") is False:
+    alembic_cfg.config_file_name = os.path.join("app/database/migrations", "alembic.ini")
+    if os.path.isdir("app/database/migrations") is False:
         logger.opt(colors=True).info("<light-blue>Initiating alembic...</light-blue>")
-        alembic.init(alembic_cfg, "migrations", "generic" if sync else "async")
-        with open("migrations/env.py", "r+") as f:
+        alembic.init(alembic_cfg, "app/database/migrations", "generic" if sync else "async")
+        with open("app/database/migrations/env.py", "r+") as f:
             content = f.read()
             content = content.replace(
-                "target_metadata = None", f"from {bot.MAIN_MODULE_NAME} import db\ntarget_metadata = db.metadata"
+                "target_metadata = None", "from database import db\ntarget_metadata = db.metadata"
             )
             f.seek(0)
             f.write(content)
             f.truncate()
 
-    logger.debug("Alembic is configured")
+    logger.debug(f"Alembic is configured ({'Sync' if sync else 'Async'})")
     return alembic_cfg
 
 
@@ -64,9 +64,10 @@ async def _run():
     logger.opt(colors=True).info(f"Bot running as <light-blue>@{me.username}</light-blue>")
 
     if ENABLE_APSCHEDULER is True:
-        bot.scheduler.start()
-        # TODO добавить в scheduler задачу проверку на обновления расписания
-        logger.success("Scheduler started!")
+        scheduler.start()
+        scheduler.remove_all_jobs()
+        await init_scheduler_jobs()
+        logger.success("Schedulers init jobs configurated and scheduler started!")
 
     # Добавляем команды в бота
     from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
@@ -100,14 +101,9 @@ def showmigrations(verbose):
 
 
 def load_models():
-    models = [m[:-3] for m in os.listdir(MODELS_DIR) if m.endswith(".py")]
-    logger.opt(colors=True).info(f"Loading <y>{len(models)}</y> models")
-    for model in models:
-        try:
-            importlib.import_module(f"{MODELS_DIR}.{model}")
-            logger.opt(colors=True).info(f"Loading <y>{model}</y>...   <light-green>loaded</light-green>")
-        except ImportError:
-            logger.opt(colors=True).exception(f"Loading <y>{model}</y>...   <light-red>error</light-red>")
+    from database.models import models
+
+    logger.opt(colors=True).info(f"Loaded <y>{len(models)}</y> models")
 
 
 @cli.command()

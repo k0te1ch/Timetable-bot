@@ -1,5 +1,6 @@
 # Files
 app/utils/table.py
+migrations/
 actions-runner/
 test.py
 database.sqlite

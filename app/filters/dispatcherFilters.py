@@ -2,7 +2,7 @@ from aiogram.enums import ChatType
 from aiogram.types import Message
 from config import ADMINS, LANGUAGES
 from filters.chatType import ChatTypeFilter
-from utils.context import context
+from services.context import context
 
 
 async def IsGroup(m) -> bool:

@@ -5,21 +5,21 @@ import re
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
-from apscheduler.jobstores.memory import MemoryJobStore
-from apscheduler.jobstores.redis import RedisJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from handlers import adminPanel, feedbackHandler, free_audiences_handler, mainHandler, registerHandler
+from handlers import ROUTERS
 from handlers.middlewares import GeneralMiddleware
 from loguru import logger
-from redis.asyncio import Redis
+from services import _NoneModule
+from services.redis import redis
 
-# TODO: Создать отдельную директорию для middlewares
+# TODO: Создать отдельную директорию для middlewares (зачем?)
+# TODO: Объекты бота вывести в отдельную директорию и как-то их подгружать (избавимся от bot.py возможно)
+# TODO: Автоматом подгружать все handlers (__init__.py)
 
 # IMPORT SETTINGS
 MAIN_MODULE_NAME = os.path.basename(__file__)[:-3]
 
 try:
-    from config import API_TOKEN, PARSE_MODE, REDIS_URL
+    from config import API_TOKEN, PARSE_MODE
 
     logger.debug("Loading settings from config")
 except ModuleNotFoundError:
@@ -29,26 +29,6 @@ except ImportError as err:
     var = re.match(r"cannot import name '(\w+)' from", err.msg).groups()[0]
     logger.critical(f"{var} is not defined in the config file")
     exit()
-
-# TODO сделать универсальность между async/sync sqlalchemy
-
-
-# OBJECTS FOR BOT
-
-
-class _NotDefinedModule(Exception):
-    pass
-
-
-class _NoneModule:
-    def __init__(self, module_name, attr_name):
-        self.module_name = module_name
-        self.attr_name = attr_name
-
-    def __getattr__(self, attr):
-        msg = f"You are using {self.module_name} while the {self.attr_name} is not set in config"
-        logger.critical(msg)
-        raise _NotDefinedModule(msg)
 
 
 # GET TG BOT OBJECT
@@ -80,18 +60,6 @@ def _get_bot_obj() -> Bot:
     return bot
 
 
-# GET REDIS OBJECT
-def _get_redis_obj():
-    if REDIS_URL is not None:
-        redis = Redis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
-        logger.debug("Redis is configured")
-    else:
-        redis = _NoneModule("redis", "REDIS_URL")
-        logger.debug("Redis isn't configured")
-
-    return redis
-
-
 # GET DISPATCHER OBJECT
 def _get_dp_obj(bot, redis):
     logger.debug("Dispatcher configurate:")
@@ -104,46 +72,15 @@ def _get_dp_obj(bot, redis):
     dp = Dispatcher(storage=storage)
     dp.message.middleware(GeneralMiddleware())
     dp.callback_query.middleware(GeneralMiddleware())
-    dp.include_routers(
-        registerHandler.router,
-        adminPanel.router,
-        mainHandler.router,
-        feedbackHandler.router,
-        free_audiences_handler.router,
-    )
+    dp.include_routers(*ROUTERS)
 
     logger.debug("Dispatcher is configured")
     return dp
 
 
-# GET SCHEDULER OBJECT
-def _get_scheduler_obj(redis):
-    job_defaults = {"misfire_grace_time": 3600}
-
-    if not isinstance(redis, _NoneModule):
-        cfg = redis.connection_pool.connection_kwargs
-        jobstores = {
-            "default": RedisJobStore(
-                host=cfg.get("host", "localhost"),
-                port=cfg.get("port", 6379),
-                db=cfg.get("db", 0),
-                password=cfg.get("password"),
-            )
-        }
-    else:
-        jobstores = {"default": MemoryJobStore()}
-
-    scheduler = AsyncIOScheduler(jobstores=jobstores, job_defaults=job_defaults)
-
-    logger.debug("Scheduler configured")
-    return scheduler
-
-
 if __name__ == MAIN_MODULE_NAME:
     bot = _get_bot_obj()
-    redis = _get_redis_obj()
     dp = _get_dp_obj(bot, redis)
-    scheduler = _get_scheduler_obj(redis)
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())

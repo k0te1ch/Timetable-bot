@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Timetable-bot"
-version = "0.0.2"
+version = "0.1.0"
 description = "Telegram bot for schedule output"
 authors = ["k0te1ch <khvostov40@gmail.com>", "ShyDamn <den03062003@gmail.com>"]
 license = ""

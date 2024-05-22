@@ -164,7 +164,7 @@ class ScheduleParser:
     def _toText(self, object) -> str:
         return ""
 
-    def getScheduleForTime(self, course, direction, profile, group, numerator, day, time):
+    def getScheduleForTime(self, course, direction, profile, group, numerator, day, time) -> str | None:
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
 
         # Проверка на Воскресенье
@@ -178,12 +178,21 @@ class ScheduleParser:
             else:
                 return f"{day}, ({numerator})\n\n{time} => Нет данных!"
 
+        # Удаление лишних значений "None" в начале и в конце расписания
+        while tempObj and tempObj[next(iter(tempObj))] == "None":
+            tempObj.pop(next(iter(tempObj)))
+        while tempObj and tempObj[next(reversed(tempObj))] == "None":
+            tempObj.pop(next(reversed(tempObj)))
+
         # Получаем расписание на указанное время
-        subject = tempObj.get(time, "None")
+        subject = tempObj.get(time, "Пары нет")
+        if subject == "Пары нет":
+            return None
 
         # Формирование результата
         if subject == "None":
             subject = "Окно"
+
         return f"{day}, ({numerator})\n\n{time} => {subject}"
 
     def getScheduleForDay(self, course, direction, profile, group, numerator, day):

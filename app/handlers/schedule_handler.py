@@ -24,7 +24,7 @@ async def next_para(time: str) -> None:
             users: list[User] = await get_users_for_notify(session)
 
             for user in users:
-                # TODO: высылать уведомление за 5 минут до начала пары
+                # TODO: Если выходной - не присылать каждую пару о паре, объединить воедино
 
                 import locale
 
@@ -33,7 +33,7 @@ async def next_para(time: str) -> None:
                 selected_day: datetime = datetime.now(TIMEZONE)
                 current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
 
-                subject = scheduleParser.getScheduleForTime(
+                subject: str | None = scheduleParser.getScheduleForTime(
                     user.course,
                     user.direction,
                     user.profile,
@@ -42,6 +42,10 @@ async def next_para(time: str) -> None:
                     selected_day.strftime("%A").capitalize(),
                     time,
                 )
+                if subject is None:
+                    logger.debug(
+                        f"Сообщение не отправлено за 5 минут до начала пары - у пользователя {user.id} нет пары"
+                    )
                 await bot.send_message(user.id, subject)
                 logger.debug(f"Отправлено сообщение пользователю {user.id} за 5 минут до начала пары")
     logger.debug("Все сообщения отправлены")
@@ -50,6 +54,8 @@ async def next_para(time: str) -> None:
 async def next_day() -> None:
     from bot import bot
     from database import db
+
+    # TODO: Тип дня
 
     logger.debug("Начало отправок сообщений")
 

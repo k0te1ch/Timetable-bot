@@ -3,6 +3,7 @@ app/utils/table.py
 migrations/
 actions-runner/
 test.py
+test2.py
 database.sqlite
 files/
 

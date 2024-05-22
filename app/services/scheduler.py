@@ -53,20 +53,29 @@ async def init_scheduler_jobs() -> None:
 
         scheduler.add_job(
             next_para,
-            trigger=CronTrigger(hour=start.hour, minute=start.minute),
+            trigger=CronTrigger(hour=start.hour, minute=start.minute, timezone=TIMEZONE),
             args=[time_str],
             name=f"para-{time_str}",
             replace_existing=True,
+            timezone=TIMEZONE,
         )
 
     scheduler.add_job(
         next_day,
-        trigger=CronTrigger(hour=0),
+        trigger=CronTrigger(hour=0, timezone=TIMEZONE),
         name="next_day",
         replace_existing=True,
+        timezone=TIMEZONE,
     )
 
-    scheduler.add_job(scheduleParser.updateTable, "interval", name="Update table", replace_existing=True, seconds=600)
+    scheduler.add_job(
+        scheduleParser.updateTable,
+        "interval",
+        name="Update table",
+        replace_existing=True,
+        seconds=600,
+        timezone=TIMEZONE,
+    )
 
     logger.success("Init scheduler jobs")
 

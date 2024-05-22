@@ -23,7 +23,7 @@ async def start(msg: Message, state: FSMContext, username: str, db, existUser: b
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/start</b> command")
 
     if existUser:
-        from app.handlers.main_handler import menu
+        from handlers.main_handler import menu
 
         return await menu(msg=msg, username=username, state=state, db=db, existUser=existUser)
 
@@ -120,7 +120,7 @@ async def get_group(callback: CallbackQuery, state: FSMContext, username: str, d
     await state.clear()
     if result:
         await callback.answer("Вы успешно зарегистрированы!")
-        from app.handlers.main_handler import menuCallback
+        from handlers.main_handler import menuCallback
 
         return await menuCallback(callback=callback, username=username, state=state, db=db, existUser=True)
 

@@ -22,7 +22,7 @@ async def _menu(msg: Message, callback: CallbackQuery, username: str, state: FSM
         call = False
 
     if not existUser:
-        from app.handlers.register_handler import start
+        from handlers.register_handler import start
 
         if call:
             await callback.answer("Вы не зарегистрированы")

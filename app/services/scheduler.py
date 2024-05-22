@@ -3,7 +3,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import TIMEZONE
 from loguru import logger
-from services import _NoneModule
+from services.none_module import _NoneModule
 from services.redis import redis
 
 # TODO: Аннотации

@@ -1,4 +1,4 @@
-BASEDIR=$(CURDIR)
+# NOT WORKING IN *NIX
 
 pip-tools:
 	python -m pip install -U pip
@@ -10,13 +10,16 @@ requirements: pip-tools
 	poetry install --with=dev,test
 
 run:
-	python bot.py run
+	python app/bot.py run
 
-run-runner:
-	cd $(BASEDIR)/actions-runner && run.cmd
+async-makemigrations:
+	python app/bot.py makemigrations -s False
+
+async-migrate:
+	python app/bot.py migrate -s False
 
 test:
-	poetry run pytest
+	poetry run pytest --cov=.
 
 check:
 	poetry run pre-commit run --show-diff-on-failure --color=always --all-files
@@ -29,5 +32,20 @@ update: pip-tools
 lock:
 	poetry lock
 
-docker-build-run:
-	docker-compose
+docker-build:
+	docker-compose --env-file .env build
+
+docker-test: docker-build
+	docker-compose run test-runner pytest
+
+docker-run:
+	docker-compose up -d --force-recreate
+
+docker-up: docker-build
+	docker-compose up -d --force-recreate
+
+docker-stop:
+	docker-compose down
+
+docker-rm: docker-stop
+	docker-compose rm

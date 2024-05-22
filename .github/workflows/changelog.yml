@@ -1,0 +1,35 @@
+name: Generate Changelog
+
+on:
+  push:
+    branches:
+      - dev-Shubin
+      - dev
+      - dev-Khvostov
+
+jobs:
+  generate_changelog:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install Dependencies
+        run: npm install -g auto-changelog
+
+      - name: Generate Changelog
+        run: auto-changelog
+
+      - name: Commit Changelog
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "chore: update changelog [skip ci]"
+          git push

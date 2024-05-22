@@ -1,11 +1,11 @@
 # Files
-utils/table.py
+app/utils/table.py
+migrations/
 actions-runner/
 test.py
+test2.py
 database.sqlite
 files/
-migrations/
-tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -36,6 +36,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 logs/
+.idea/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -132,6 +133,7 @@ celerybeat.pid
 
 # Environments
 .env
+*.env
 .venv
 env/
 venv/

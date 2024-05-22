@@ -1,5 +1,11 @@
 # Files
-database.sqlite
+.git
+.github
+actions-runner
+*.env
+Makefile
+test.py
+.venv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

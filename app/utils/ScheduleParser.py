@@ -1,6 +1,7 @@
 import copy
 import re
 from collections import OrderedDict
+from typing import Any
 
 import openpyxl
 import requests
@@ -9,21 +10,70 @@ from loguru import logger
 from lxml import etree
 from lxml.etree import ParserError
 
+# TODO: Property
+# TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
+# TODO: Поиск преподавателей в определённый день
 # TODO: Сделать аннотации
 # TODO: Логирование
 # TODO: Сериализация объекта
 # TODO: Распарсить ещё сами предметы
 # TODO: Через абстрактные классы преобразовывать расписание для дня, недели, месяца и т.д.
 # TODO: Переделать дни, т.к они в словаре могут поменять порядок
-# TODO: Поиск преподавателей в определённый день
 # TODO: Получать числитель/знаменатель через внутренний календарь
-# TODO: Если целый день один и тот же предмет (военка например) -> Целый день: %предмет%
 # TODO: Правильная сортировка словаря с предметами
 # TODO: Расписание для преподавателей (просто отталкиваемся от преподов)
-# TODO: Property
-# TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
 # TODO: Получать расписание по объекту `User`
 # TODO: Рефакторинг
+
+
+class Subject:
+    """
+    Class to handle information about subject
+    """
+
+    def __init__(
+        self,
+        name: str,
+        rank: str = None,
+        teacher: str = None,
+        audience: str = None,
+        window: bool = False,
+        time: str = None,
+    ) -> None:
+        self._name: str = name
+        self._rank: str | None = rank
+        self._teacher: str | None = teacher
+        self._audience: str | None = audience
+        self._window: bool = window
+        self._time: str | None = time
+
+    @property
+    def is_window(self) -> bool:
+        return self._window
+
+    @property
+    def audience(self) -> str | None:
+        return self._audience
+
+    @audience.setter
+    def audience(self, audience) -> None:
+        self._audience = audience
+
+    @property
+    def time(self) -> str | None:
+        return self._time
+
+    @time.setter
+    def time(self, time) -> None:
+        self._time = time
+
+    def to_text(self, format_string: str = "name rank teacher audience") -> str:
+        return (
+            format_string.replace("name", self._name or "")
+            .replace("rank", self._rank or "")
+            .replace("teacher", self._teacher or "")
+            .replace("audience", self._audience or "")
+        )
 
 
 class ScheduleParser:
@@ -33,9 +83,10 @@ class ScheduleParser:
 
     _time: set[str] = set()
     _table: list[list[str]] = None
-    _tableObj: OrderedDict[any] = None
-    _freeAudiences: OrderedDict[any] = None
+    _tableObj: OrderedDict[Any] = None
+    _freeAudiences: OrderedDict[Any] = None
     _audiences: set[str] = set()
+    _temp_audiences: list[str] = list()
 
     def __init__(self):
         self._toObject(self._parse(self._downloadTable()))
@@ -109,6 +160,7 @@ class ScheduleParser:
             course, group, direction, profile = (table[j][i].strip() for j in range(4))
             timetable = OrderedDict({"Числитель": OrderedDict(), "Знаменатель": OrderedDict()})
             numerator = True
+            previous_subject: dict[Subject] = dict()
             for d in range(4, len(table)):
                 day, time = table[d][0].strip(), table[d][1].strip().replace(" - ", "-").replace("-", " - ")
                 subject = table[d][i].strip()
@@ -116,17 +168,38 @@ class ScheduleParser:
                 self._time.add(time)
 
                 if regular := re.findall(r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$", subject):
-                    _, rank, teacher, audience = regular[0]  # TODO subject
+                    name, rank, teacher, audience = regular[0]  # TODO subject
+                    subject_object = Subject(name=name, rank=rank, teacher=teacher, audience=audience)
                     self._audiences.add(audience)
                 elif regular := re.findall(r"(.*?) (.*?) (\d+\S)$", subject):
-                    _, teacher, audience = regular[0]  # TODO subject
+                    name, teacher, audience = regular[0]  # TODO subject
+                    subject_object = Subject(name=name, teacher=teacher, audience=audience)
                     self._audiences.add(audience)
+                else:
+                    subject_object = Subject(name="Окно" if subject == "None" else subject, window=subject == "None")
 
+                subject_object.time = time
                 key = "Числитель" if numerator else "Знаменатель"
                 if day not in timetable[key]:
                     timetable[key][day] = OrderedDict()
                 if time not in timetable[key][day]:
-                    timetable[key][day][time] = subject
+                    timetable[key][day][time] = subject_object
+                    if (
+                        key in previous_subject
+                        and previous_subject[key]
+                        and previous_subject[key].to_text() == subject_object.to_text()
+                    ):
+                        time1, time2 = previous_subject[key].time, subject_object.time
+                        new_time = time1.split(" - ")[0] + " - " + time2.split(" - ")[1]
+                        if time1 in timetable[key][day]:
+                            timetable[key][day].pop(time1)
+                        if time2 in timetable[key][day]:
+                            timetable[key][day].pop(time2)
+
+                        if new_time not in timetable[key][day]:
+                            subject_object.time = new_time
+                            timetable[key][day][new_time] = subject_object
+                previous_subject[key] = subject_object
                 numerator = not numerator
 
             if course not in objects:
@@ -154,20 +227,24 @@ class ScheduleParser:
 
         # Проверка на Воскресенье
         if day == "Воскресенье":
-            return f"{day}, ({numerator})\n\nВыходной!"
+            return None
 
         # Проходим по ключам, чтобы добраться до расписания
         for key in (course, direction, profile, group, numerator, day):
             if key in tempObj:
                 tempObj = tempObj[key]
             else:
-                return f"{day}, ({numerator})\n\n{time} => Нет данных!"
+                return None
 
         # Удаление лишних значений "None" в начале и в конце расписания
-        while tempObj and tempObj[next(iter(tempObj))] == "None":
+        while tempObj and tempObj[next(iter(tempObj))].is_window:
             tempObj.pop(next(iter(tempObj)))
-        while tempObj and tempObj[next(reversed(tempObj))] == "None":
+        while tempObj and tempObj[next(reversed(tempObj))].is_window:
             tempObj.pop(next(reversed(tempObj)))
+
+        for time_tmp in tempObj.keys():
+            if time == time_tmp.split(" - ")[0]:
+                time = time_tmp
 
         # Получаем расписание на указанное время
         subject = tempObj.get(time, "Пары нет")
@@ -175,8 +252,7 @@ class ScheduleParser:
             return None
 
         # Формирование результата
-        if subject == "None":
-            subject = "Окно"
+        subject = subject.to_text()
 
         return f"{day}, ({numerator})\n\n{time} => {subject}"
 
@@ -189,23 +265,23 @@ class ScheduleParser:
                 tempObj = tempObj[key]
             else:
                 if day == "Воскресенье":
-                    # TODO переделать (запихнуть дни в расписание)
                     return daySchedule + "\nВыходной!"
                 return ""
 
         # Проверка на выходной
-        if all(subject == "None" for subject in tempObj.values()) or day == "Воскресенье":
+        if all(subject.is_window for subject in tempObj.values()) or day == "Воскресенье":
             return daySchedule + "\nВыходной!"
 
         # Удаление лишних значений "None" в начале и в конце расписания
-        while tempObj and tempObj[next(iter(tempObj))] == "None":
+        while tempObj and tempObj[next(iter(tempObj))].is_window:
             tempObj.pop(next(iter(tempObj)))
-        while tempObj and tempObj[next(reversed(tempObj))] == "None":
+        while tempObj and tempObj[next(reversed(tempObj))].is_window:
             tempObj.pop(next(reversed(tempObj)))
 
         # Формирование расписания
         for time, subject in tempObj.items():
-            daySchedule += f'{time} => {subject.replace("None", "Окно")}\n\n'
+            subject_text = subject.to_text()
+            daySchedule += f"{time} => {subject_text}\n\n"
         daySchedule = daySchedule[:-2]
         return daySchedule
 
@@ -224,9 +300,14 @@ class ScheduleParser:
             self._makeFreeAudiences()
         return "Вот список свободных аудиторий: " + ", ".join(self._freeAudiences[day][time][numerator])
 
-    def _makeFreeAudiences(self):  # TODO Сделать через таблицу
+    def _filter_audiences(self):
+        pass
+
+    def _makeFreeAudiences(self):
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
         freeAudiences: OrderedDict[any] = OrderedDict()
+
+        # TODO: адаптивный фильтр - что чаще встречается, то и добавляем
 
         for course, directions in tempObj.items():
             for direction, profiles in directions.items():
@@ -239,21 +320,27 @@ class ScheduleParser:
                                         if time in freeAudiences[day]:
                                             if numerator in freeAudiences[day][time]:
                                                 audience = "-1"
-                                                regular = re.findall(
-                                                    r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
-                                                    subject,
-                                                )
-                                                if len(regular) > 0:
-                                                    _, rank, teacher, audience = regular[0]
+                                                if isinstance(subject, Subject):
+                                                    audience = subject.audience
                                                     if audience in freeAudiences[day][time][numerator]:
                                                         freeAudiences[day][time][numerator].remove(audience)
                                                     continue
-                                                regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
-                                                if len(regular) > 0:
-                                                    _, teacher, audience = regular[0]
-                                                    if audience in freeAudiences[day][time][numerator]:
-                                                        freeAudiences[day][time][numerator].remove(audience)
-                                                    continue
+                                                else:
+                                                    regular = re.findall(
+                                                        r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
+                                                        subject,
+                                                    )
+                                                    if len(regular) > 0:
+                                                        _, rank, teacher, audience = regular[0]
+                                                        if audience in freeAudiences[day][time][numerator]:
+                                                            freeAudiences[day][time][numerator].remove(audience)
+                                                        continue
+                                                    regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
+                                                    if len(regular) > 0:
+                                                        _, teacher, audience = regular[0]
+                                                        if audience in freeAudiences[day][time][numerator]:
+                                                            freeAudiences[day][time][numerator].remove(audience)
+                                                        continue
                                             else:
                                                 freeAudiences[day][time][numerator] = list(copy.copy(self._audiences))
                                         else:

@@ -1,15 +1,17 @@
 import copy
+import datetime
 import re
 from collections import OrderedDict
 from typing import Any
 
 import openpyxl
 import requests
-from config import CS_URL, TIMETABLE_PATH
+from config import CS_URL, TIMETABLE_PATH, TIMEZONE
 from loguru import logger
 from lxml import etree
 from lxml.etree import ParserError
 
+# TODO: Объединить выходные
 # TODO: Property
 # TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
 # TODO: Поиск преподавателей в определённый день
@@ -31,6 +33,7 @@ class Subject:
     Class to handle information about subject
     """
 
+    # TODO: Сюда перенести время пары
     def __init__(
         self,
         name: str,
@@ -98,15 +101,60 @@ class ScheduleParser:
         """
         # TODO: Необходимо сделать уведомление о изменении связанное с парами
         # TODO: Изменённую пару добавить в APScheduler
-        self._tableObj = None
-        self._table = None
-        self._freeAudiences = None
+        self._time: set[str] = set()
+        self._table: list[list[str]] = None
+        self._tableObj: OrderedDict[Any] = None
+        self._freeAudiences: OrderedDict[Any] = None
+        self._audiences: set[str] = set()
+        self._temp_audiences: list[str] = list()
         self._toObject(self._parse(self._downloadTable()))
         self._makeFreeAudiences()
         logger.info("Timetable updated successfully")
 
     async def get_time(self) -> set[str]:
         return self._time
+
+    @staticmethod
+    def time_in_range(timerange: str, x: datetime.time):
+        """Return true if x is in the timerange"""
+        start, end = timerange.split(" - ")
+        start = list(map(int, start.split(":")))
+        start = datetime.time(hour=start[0], minute=start[1], tzinfo=TIMEZONE)
+        end = list(map(int, end.split(":")))
+        end = datetime.time(hour=end[0], minute=end[1], tzinfo=TIMEZONE)
+        if start <= end:
+            return start <= x <= end
+        return start <= x or x <= end
+
+    @staticmethod
+    def time_from_times(timerange: str, times: set):
+        answer = []
+        start, end = timerange.split(" - ")
+        start = list(map(int, start.split(":")))
+        start = datetime.time(hour=start[0], minute=start[1], tzinfo=TIMEZONE)
+        end = list(map(int, end.split(":")))
+        end = datetime.time(hour=end[0], minute=end[1], tzinfo=TIMEZONE)
+        for time in times:
+            time_start, time_end = time.split(" - ")
+            time_start = list(map(int, time_start.split(":")))
+            time_start = datetime.time(hour=time_start[0], minute=time_start[1], tzinfo=TIMEZONE)
+            time_end = list(map(int, time_end.split(":")))
+            time_end = datetime.time(hour=time_end[0], minute=time_end[1], tzinfo=TIMEZONE)
+            if start <= time_start <= end and start <= time_end <= end:
+                answer.append(time)
+
+        return answer
+
+    @staticmethod
+    def _trim_schedule(schedule: OrderedDict) -> OrderedDict:
+        """Remove leading and trailing windows from the schedule."""
+        # Remove leading windows
+        while schedule and next(iter(schedule.values())).is_window:
+            schedule.popitem(last=False)
+        # Remove trailing windows
+        while schedule and next(reversed(schedule.values())).is_window:
+            schedule.popitem(last=True)
+        return schedule
 
     def _downloadTable(self) -> str:
         try:
@@ -166,7 +214,6 @@ class ScheduleParser:
                 subject = table[d][i].strip()
 
                 self._time.add(time)
-
                 if regular := re.findall(r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$", subject):
                     name, rank, teacher, audience = regular[0]  # TODO subject
                     subject_object = Subject(name=name, rank=rank, teacher=teacher, audience=audience)
@@ -187,9 +234,11 @@ class ScheduleParser:
                     if (
                         key in previous_subject
                         and previous_subject[key]
-                        and previous_subject[key].to_text() == subject_object.to_text()
+                        and day in previous_subject[key]
+                        and previous_subject[key][day]
+                        and previous_subject[key][day].to_text() == subject_object.to_text()
                     ):
-                        time1, time2 = previous_subject[key].time, subject_object.time
+                        time1, time2 = previous_subject[key][day].time, subject_object.time
                         new_time = time1.split(" - ")[0] + " - " + time2.split(" - ")[1]
                         if time1 in timetable[key][day]:
                             timetable[key][day].pop(time1)
@@ -199,7 +248,11 @@ class ScheduleParser:
                         if new_time not in timetable[key][day]:
                             subject_object.time = new_time
                             timetable[key][day][new_time] = subject_object
-                previous_subject[key] = subject_object
+                if key not in previous_subject:
+                    previous_subject[key] = dict()
+                if day not in previous_subject[key]:
+                    previous_subject[key][day] = dict()
+                previous_subject[key][day] = subject_object
                 numerator = not numerator
 
             if course not in objects:
@@ -257,7 +310,7 @@ class ScheduleParser:
         return f"{day}, ({numerator})\n\n{time} => {subject}"
 
     def getScheduleForDay(self, course, direction, profile, group, numerator, day):
-        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
+        tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
         daySchedule: str = f"{day} ({numerator})\n"
 
         for key in (course, direction, profile, group, numerator, day):
@@ -273,17 +326,20 @@ class ScheduleParser:
             return daySchedule + "\nВыходной!"
 
         # Удаление лишних значений "None" в начале и в конце расписания
-        while tempObj and tempObj[next(iter(tempObj))].is_window:
-            tempObj.pop(next(iter(tempObj)))
-        while tempObj and tempObj[next(reversed(tempObj))].is_window:
-            tempObj.pop(next(reversed(tempObj)))
+        tempObj = self._trim_schedule(tempObj)
 
         # Формирование расписания
+        import locale
+
+        locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+        datetime_now = datetime.datetime.now(TIMEZONE)
+        time_now = datetime_now.time()
+        day_now = datetime_now.date().strftime("%A").capitalize()
         for time, subject in tempObj.items():
-            subject_text = subject.to_text()
-            daySchedule += f"{time} => {subject_text}\n\n"
-        daySchedule = daySchedule[:-2]
-        return daySchedule
+            now = self.time_in_range(time, time_now) if day_now == day else False
+            daySchedule += f"{'<b><i><U>' if now else ''}{time} {'(Сейчас)' if now else ''} => {subject.to_text()}{'</U></i></b>' if now else ''}\n\n"
+
+        return daySchedule[:-2]
 
     def getTableObj(self):
         if self._tableObj is None:
@@ -304,8 +360,9 @@ class ScheduleParser:
         pass
 
     def _makeFreeAudiences(self):
-        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
-        freeAudiences: OrderedDict[any] = OrderedDict()
+        tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
+
+        freeAudiences: OrderedDict[Any] = OrderedDict()
 
         # TODO: адаптивный фильтр - что чаще встречается, то и добавляем
 
@@ -315,38 +372,41 @@ class ScheduleParser:
                     for group, numerators in groups.items():
                         for numerator, days in numerators.items():
                             for day, times in days.items():
-                                for time, subject in times.items():
-                                    if day in freeAudiences:
-                                        if time in freeAudiences[day]:
-                                            if numerator in freeAudiences[day][time]:
-                                                audience = "-1"
-                                                if isinstance(subject, Subject):
-                                                    audience = subject.audience
-                                                    if audience in freeAudiences[day][time][numerator]:
-                                                        freeAudiences[day][time][numerator].remove(audience)
-                                                    continue
+                                for timerange, subject in times.items():
+                                    for time in self.time_from_times(timerange, self._time):
+                                        if day in freeAudiences:
+                                            if time in freeAudiences[day]:
+                                                if numerator in freeAudiences[day][time]:
+                                                    audience = "-1"
+                                                    if isinstance(subject, Subject):
+                                                        audience = subject.audience
+                                                        if audience in freeAudiences[day][time][numerator]:
+                                                            freeAudiences[day][time][numerator].remove(audience)
+                                                        continue
+                                                    else:
+                                                        regular = re.findall(
+                                                            r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
+                                                            subject,
+                                                        )
+                                                        if len(regular) > 0:
+                                                            _, rank, teacher, audience = regular[0]
+                                                            if audience in freeAudiences[day][time][numerator]:
+                                                                freeAudiences[day][time][numerator].remove(audience)
+                                                            continue
+                                                        regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
+                                                        if len(regular) > 0:
+                                                            _, teacher, audience = regular[0]
+                                                            if audience in freeAudiences[day][time][numerator]:
+                                                                freeAudiences[day][time][numerator].remove(audience)
+                                                            continue
                                                 else:
-                                                    regular = re.findall(
-                                                        r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
-                                                        subject,
+                                                    freeAudiences[day][time][numerator] = list(
+                                                        copy.copy(self._audiences)
                                                     )
-                                                    if len(regular) > 0:
-                                                        _, rank, teacher, audience = regular[0]
-                                                        if audience in freeAudiences[day][time][numerator]:
-                                                            freeAudiences[day][time][numerator].remove(audience)
-                                                        continue
-                                                    regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
-                                                    if len(regular) > 0:
-                                                        _, teacher, audience = regular[0]
-                                                        if audience in freeAudiences[day][time][numerator]:
-                                                            freeAudiences[day][time][numerator].remove(audience)
-                                                        continue
                                             else:
-                                                freeAudiences[day][time][numerator] = list(copy.copy(self._audiences))
+                                                freeAudiences[day][time] = OrderedDict()
                                         else:
-                                            freeAudiences[day][time] = OrderedDict()
-                                    else:
-                                        freeAudiences[day] = OrderedDict()
+                                            freeAudiences[day] = OrderedDict()
         self._freeAudiences = freeAudiences
         return freeAudiences
 

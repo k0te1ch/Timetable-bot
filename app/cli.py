@@ -10,6 +10,7 @@ from alembic.command import revision as alembic_revision
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from config import DATABASE_URL, ENABLE_APSCHEDULER, SKIP_UPDATES
+from handlers import COMMANDS
 from loguru import logger
 from services import init_scheduler_jobs, scheduler
 
@@ -70,14 +71,11 @@ async def _run():
         logger.success("Schedulers init jobs configurated and scheduler started!")
 
     # Добавляем команды в бота
-    from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
+    from aiogram.types import BotCommandScopeAllPrivateChats
 
     # TODO BotCommand или в env, или формировать при помощи handlers
     await bot.bot.set_my_commands(
-        commands=[  # TODO в отдельный файл
-            BotCommand(command="start", description="Команда для регистрация в боте"),
-            BotCommand(command="menu", description="Команда для вызова меню"),
-        ],
+        commands=COMMANDS,
         scope=BotCommandScopeAllPrivateChats(),
     )
 

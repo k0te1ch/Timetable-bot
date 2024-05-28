@@ -8,11 +8,11 @@ from services.keyboards import keyboards
 from utils.botMethods import get_logs, shutdown_bot
 
 # TODO: add callback fabric
-router = Router(name="admin_panel")
+router = Router(name="admin_handler")
 router.message.filter(IsPrivate, IsAdmin)
 
 
-@router.message(F.text, Command("admin_panel"))
+@router.message(F.text, Command("admin"))
 async def start(msg: Message, language: str, username: str):
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Call admin panel")
     return await msg.answer(context["ru"].admin_panel_open, reply_markup=keyboards["adminPanel"][language].main)

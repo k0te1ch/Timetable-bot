@@ -81,7 +81,7 @@ async def next_day() -> None:
                     selected_day.strftime("%A").capitalize(),
                 )
                 await bot.send_message(user.id, subject)
-                logger.debug("Отправлено сообщение пользователю {user.id} на следующий день")
+                logger.debug(f"Отправлено сообщение пользователю {user.id} на следующий день")
     logger.debug("Все сообщения отправлены")
 
 

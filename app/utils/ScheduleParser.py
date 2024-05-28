@@ -78,6 +78,16 @@ class Subject:
             .replace("audience", self._audience or "")
         )
 
+    def to_dict(self) -> dict:
+        return {
+            "name": self._name,
+            "rank": self._rank,
+            "teacher": self._teacher,
+            "audience": self._audience,
+            "window": self._window,
+            "time": self._time,
+        }
+
 
 class ScheduleParser:
     """
@@ -344,7 +354,22 @@ class ScheduleParser:
     def getTableObj(self):
         if self._tableObj is None:
             self._toObject(self._parse(self._downloadTable()))
-        return self._tableObj
+
+        return self.subjects_to_dict(copy.deepcopy(self._tableObj))
+
+    @staticmethod
+    def subjects_to_dict(tableObj: dict[Any]) -> dict[Any]:
+        for course, directions in tableObj.items():
+            for direction, profiles in directions.items():
+                for profile, groups in profiles.items():
+                    for group, numerators in groups.items():
+                        for numerator, days in numerators.items():
+                            for day, times in days.items():
+                                for time, subject in times.items():
+                                    tableObj[course][direction][profile][group][numerator][day][
+                                        time
+                                    ] = subject.to_dict()
+        return tableObj
 
     def getFreeAudiencesObj(self):
         if self._freeAudiences is None or len(self._freeAudiences) == 0:

@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.user import User
@@ -16,8 +16,9 @@ async def get_user_by_id(
 ) -> User | None:
     """
     Returns user by tg-id
+
     :param session: An `AsyncSession` object
-    :param telegram_id: A telegram-ID
+    :param telegram_id: A telegram ID
     :return: `User` or `None`
     """
 
@@ -31,6 +32,7 @@ async def get_user_by_id(
 async def create_user(session: AsyncSession, user_id: int, course: str, direction: str, profile: str, group: str):
     """
     Creates `User` object
+
     :param session: An `AsyncSession` object
     :param telegram_id: A telegram-id
     :param full_name: Fullname of user
@@ -61,12 +63,13 @@ async def create_user(session: AsyncSession, user_id: int, course: str, directio
 async def delete_user(session: AsyncSession, user_id: int) -> bool:
     """
     Deletes `User` object
-    :param user_id:
+
+    :param user_id: User ID
     :param session: An `AsyncSession` object
     :return:
     """
 
-    if await get_user_by_id(session, user_id) is None:
+    if not (await is_registered(session, user_id)):
         return False
 
     stmt = delete(User).where(User.id == user_id)
@@ -78,6 +81,7 @@ async def delete_user(session: AsyncSession, user_id: int) -> bool:
 async def get_users_for_notify(session: AsyncSession) -> list[User]:
     """
     Get `User` objects for notification
+
     :param session: An `AsyncSession` object
     :return: `List[User]`
     """
@@ -86,3 +90,28 @@ async def get_users_for_notify(session: AsyncSession) -> list[User]:
 
     result = await session.execute(stmt)
     return result.scalars().all()
+
+
+async def switch_notify_for_user(session: AsyncSession, user_id: int) -> bool:
+    """
+    Function to toggle the boolean notify parameter for `User`.
+
+    :param session: An `AsyncSession` object
+    :param user_id: User ID
+    :return: `bool` indicating whether the user was found and the notify parameter was successfully toggled
+    """
+
+    stmt = (
+        update(User)
+        .where(User.id == user_id)
+        .values(send_notifications=(~User.send_notifications))
+        .execution_options(synchronize_session="fetch")
+    )
+    result = await session.execute(stmt)
+
+    if result.rowcount == 0:
+        return False
+
+    await session.commit()
+
+    return True

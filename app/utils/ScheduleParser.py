@@ -1,4 +1,5 @@
 import copy
+<<<<<<< HEAD
 import datetime
 import re
 from collections import OrderedDict
@@ -7,10 +8,19 @@ from typing import Any
 import openpyxl
 import requests
 from config import CS_URL, TIMETABLE_PATH, TIMEZONE
+=======
+import re
+from collections import OrderedDict
+
+import openpyxl
+import requests
+from config import CS_URL, TIMETABLE_PATH
+>>>>>>> Timetable-bot/main
 from loguru import logger
 from lxml import etree
 from lxml.etree import ParserError
 
+<<<<<<< HEAD
 # TODO: Объединить выходные (объединить одинаковые дни)
 # TODO: Оптимизировать получение расписания на неделю (ну очень долго)
 # TODO: Property
@@ -88,6 +98,23 @@ class Subject:
             "window": self._window,
             "time": self._time,
         }
+=======
+# TODO: Сделать аннотации
+# TODO: Логирование
+# TODO: Сериализация объекта
+# TODO: Распарсить ещё сами предметы
+# TODO: Через абстрактные классы преобразовывать расписание для дня, недели, месяца и т.д.
+# TODO: Переделать дни, т.к они в словаре могут поменять порядок
+# TODO: Поиск преподавателей в определённый день
+# TODO: Получать числитель/знаменатель через внутренний календарь
+# TODO: Если целый день один и тот же предмет (военка например) -> Целый день: %предмет%
+# TODO: Правильная сортировка словаря с предметами
+# TODO: Расписание для преподавателей (просто отталкиваемся от преподов)
+# TODO: Property
+# TODO: Фильтр фкновских аудиторий (мы чаще занимаемся на фкн, а пары в других факах появляются заметно реже)
+# TODO: Получать расписание по объекту `User`
+# TODO: Рефакторинг
+>>>>>>> Timetable-bot/main
 
 
 class ScheduleParser:
@@ -97,10 +124,16 @@ class ScheduleParser:
 
     _time: set[str] = set()
     _table: list[list[str]] = None
+<<<<<<< HEAD
     _tableObj: OrderedDict[Any] = None
     _freeAudiences: OrderedDict[Any] = None
     _audiences: set[str] = set()
     _temp_audiences: list[str] = list()
+=======
+    _tableObj: OrderedDict[any] = None
+    _freeAudiences: OrderedDict[any] = None
+    _audiences: set[str] = set()
+>>>>>>> Timetable-bot/main
 
     def __init__(self):
         self._toObject(self._parse(self._downloadTable()))
@@ -112,6 +145,7 @@ class ScheduleParser:
         """
         # TODO: Необходимо сделать уведомление о изменении связанное с парами
         # TODO: Изменённую пару добавить в APScheduler
+<<<<<<< HEAD
         logger.info("Timetable begin update")
         self._time: set[str] = set()
         self._table: list[list[str]] = None
@@ -119,6 +153,11 @@ class ScheduleParser:
         self._freeAudiences: OrderedDict[Any] = None
         self._audiences: set[str] = set()
         self._temp_audiences: list[str] = list()
+=======
+        self._tableObj = None
+        self._table = None
+        self._freeAudiences = None
+>>>>>>> Timetable-bot/main
         self._toObject(self._parse(self._downloadTable()))
         self._makeFreeAudiences()
         logger.info("Timetable updated successfully")
@@ -126,6 +165,7 @@ class ScheduleParser:
     async def get_time(self) -> set[str]:
         return self._time
 
+<<<<<<< HEAD
     @staticmethod
     def time_in_range(timerange: str, x: datetime.time):
         """Return true if x is in the timerange"""
@@ -168,6 +208,8 @@ class ScheduleParser:
             schedule.popitem(last=True)
         return schedule
 
+=======
+>>>>>>> Timetable-bot/main
     def _downloadTable(self) -> str:
         try:
             parser = etree.HTMLParser()
@@ -220,12 +262,16 @@ class ScheduleParser:
             course, group, direction, profile = (table[j][i].strip() for j in range(4))
             timetable = OrderedDict({"Числитель": OrderedDict(), "Знаменатель": OrderedDict()})
             numerator = True
+<<<<<<< HEAD
             previous_subject: dict[Subject] = dict()
+=======
+>>>>>>> Timetable-bot/main
             for d in range(4, len(table)):
                 day, time = table[d][0].strip(), table[d][1].strip().replace(" - ", "-").replace("-", " - ")
                 subject = table[d][i].strip()
 
                 self._time.add(time)
+<<<<<<< HEAD
                 if regular := re.findall(r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$", subject):
                     name, rank, teacher, audience = regular[0]  # TODO subject
                     subject_object = Subject(name=name, rank=rank, teacher=teacher, audience=audience)
@@ -238,10 +284,21 @@ class ScheduleParser:
                     subject_object = Subject(name="Окно" if subject == "None" else subject, window=subject == "None")
 
                 subject_object.time = time
+=======
+
+                if regular := re.findall(r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$", subject):
+                    _, rank, teacher, audience = regular[0]  # TODO subject
+                    self._audiences.add(audience)
+                elif regular := re.findall(r"(.*?) (.*?) (\d+\S)$", subject):
+                    _, teacher, audience = regular[0]  # TODO subject
+                    self._audiences.add(audience)
+
+>>>>>>> Timetable-bot/main
                 key = "Числитель" if numerator else "Знаменатель"
                 if day not in timetable[key]:
                     timetable[key][day] = OrderedDict()
                 if time not in timetable[key][day]:
+<<<<<<< HEAD
                     timetable[key][day][time] = subject_object
                     if (
                         key in previous_subject
@@ -265,6 +322,9 @@ class ScheduleParser:
                 if day not in previous_subject[key]:
                     previous_subject[key][day] = dict()
                 previous_subject[key][day] = subject_object
+=======
+                    timetable[key][day][time] = subject
+>>>>>>> Timetable-bot/main
                 numerator = not numerator
 
             if course not in objects:
@@ -292,13 +352,18 @@ class ScheduleParser:
 
         # Проверка на Воскресенье
         if day == "Воскресенье":
+<<<<<<< HEAD
             return None
+=======
+            return f"{day}, ({numerator})\n\nВыходной!"
+>>>>>>> Timetable-bot/main
 
         # Проходим по ключам, чтобы добраться до расписания
         for key in (course, direction, profile, group, numerator, day):
             if key in tempObj:
                 tempObj = tempObj[key]
             else:
+<<<<<<< HEAD
                 return None
 
         # Удаление лишних значений "None" в начале и в конце расписания
@@ -311,18 +376,37 @@ class ScheduleParser:
             if time == time_tmp.split(" - ")[0]:
                 time = time_tmp
 
+=======
+                return f"{day}, ({numerator})\n\n{time} => Нет данных!"
+
+        # Удаление лишних значений "None" в начале и в конце расписания
+        while tempObj and tempObj[next(iter(tempObj))] == "None":
+            tempObj.pop(next(iter(tempObj)))
+        while tempObj and tempObj[next(reversed(tempObj))] == "None":
+            tempObj.pop(next(reversed(tempObj)))
+
+>>>>>>> Timetable-bot/main
         # Получаем расписание на указанное время
         subject = tempObj.get(time, "Пары нет")
         if subject == "Пары нет":
             return None
 
         # Формирование результата
+<<<<<<< HEAD
         subject = subject.to_text()
+=======
+        if subject == "None":
+            subject = "Окно"
+>>>>>>> Timetable-bot/main
 
         return f"{day}, ({numerator})\n\n{time} => {subject}"
 
     def getScheduleForDay(self, course, direction, profile, group, numerator, day):
+<<<<<<< HEAD
         tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
+=======
+        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
+>>>>>>> Timetable-bot/main
         daySchedule: str = f"{day} ({numerator})\n"
 
         for key in (course, direction, profile, group, numerator, day):
@@ -330,10 +414,15 @@ class ScheduleParser:
                 tempObj = tempObj[key]
             else:
                 if day == "Воскресенье":
+<<<<<<< HEAD
+=======
+                    # TODO переделать (запихнуть дни в расписание)
+>>>>>>> Timetable-bot/main
                     return daySchedule + "\nВыходной!"
                 return ""
 
         # Проверка на выходной
+<<<<<<< HEAD
         if all(subject.is_window for subject in tempObj.values()) or day == "Воскресенье":
             return daySchedule + "\nВыходной!"
 
@@ -352,10 +441,27 @@ class ScheduleParser:
             daySchedule += f"{'<b><i><U>' if now else ''}{time} {'(Сейчас)' if now else ''} => {subject.to_text()}{'</U></i></b>' if now else ''}\n\n"
 
         return daySchedule[:-2]
+=======
+        if all(subject == "None" for subject in tempObj.values()) or day == "Воскресенье":
+            return daySchedule + "\nВыходной!"
+
+        # Удаление лишних значений "None" в начале и в конце расписания
+        while tempObj and tempObj[next(iter(tempObj))] == "None":
+            tempObj.pop(next(iter(tempObj)))
+        while tempObj and tempObj[next(reversed(tempObj))] == "None":
+            tempObj.pop(next(reversed(tempObj)))
+
+        # Формирование расписания
+        for time, subject in tempObj.items():
+            daySchedule += f'{time} => {subject.replace("None", "Окно")}\n\n'
+        daySchedule = daySchedule[:-2]
+        return daySchedule
+>>>>>>> Timetable-bot/main
 
     def getTableObj(self):
         if self._tableObj is None:
             self._toObject(self._parse(self._downloadTable()))
+<<<<<<< HEAD
 
         return self.subjects_to_dict(copy.deepcopy(self._tableObj))
 
@@ -372,6 +478,9 @@ class ScheduleParser:
                                         time
                                     ] = subject.to_dict()
         return tableObj
+=======
+        return self._tableObj
+>>>>>>> Timetable-bot/main
 
     def getFreeAudiencesObj(self):
         if self._freeAudiences is None or len(self._freeAudiences) == 0:
@@ -383,6 +492,7 @@ class ScheduleParser:
             self._makeFreeAudiences()
         return "Вот список свободных аудиторий: " + ", ".join(self._freeAudiences[day][time][numerator])
 
+<<<<<<< HEAD
     def _filter_audiences(self):
         pass
 
@@ -392,6 +502,11 @@ class ScheduleParser:
         freeAudiences: OrderedDict[Any] = OrderedDict()
 
         # TODO: адаптивный фильтр - что чаще встречается, то и добавляем
+=======
+    def _makeFreeAudiences(self):  # TODO Сделать через таблицу
+        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
+        freeAudiences: OrderedDict[any] = OrderedDict()
+>>>>>>> Timetable-bot/main
 
         for course, directions in tempObj.items():
             for direction, profiles in directions.items():
@@ -399,6 +514,7 @@ class ScheduleParser:
                     for group, numerators in groups.items():
                         for numerator, days in numerators.items():
                             for day, times in days.items():
+<<<<<<< HEAD
                                 for timerange, subject in times.items():
                                     for time in self.time_from_times(timerange, self._time):
                                         if day in freeAudiences:
@@ -434,6 +550,34 @@ class ScheduleParser:
                                                 freeAudiences[day][time] = OrderedDict()
                                         else:
                                             freeAudiences[day] = OrderedDict()
+=======
+                                for time, subject in times.items():
+                                    if day in freeAudiences:
+                                        if time in freeAudiences[day]:
+                                            if numerator in freeAudiences[day][time]:
+                                                audience = "-1"
+                                                regular = re.findall(
+                                                    r"(.*?) (преп\.|ст\.преп\.|доц\.|асс\.|проф\.) (.*?) (\d+.*?)$",
+                                                    subject,
+                                                )
+                                                if len(regular) > 0:
+                                                    _, rank, teacher, audience = regular[0]
+                                                    if audience in freeAudiences[day][time][numerator]:
+                                                        freeAudiences[day][time][numerator].remove(audience)
+                                                    continue
+                                                regular = re.findall(r"(.*?) (.*?) (\d+\S)$", subject)
+                                                if len(regular) > 0:
+                                                    _, teacher, audience = regular[0]
+                                                    if audience in freeAudiences[day][time][numerator]:
+                                                        freeAudiences[day][time][numerator].remove(audience)
+                                                    continue
+                                            else:
+                                                freeAudiences[day][time][numerator] = list(copy.copy(self._audiences))
+                                        else:
+                                            freeAudiences[day][time] = OrderedDict()
+                                    else:
+                                        freeAudiences[day] = OrderedDict()
+>>>>>>> Timetable-bot/main
         self._freeAudiences = freeAudiences
         return freeAudiences
 

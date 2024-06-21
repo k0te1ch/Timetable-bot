@@ -1,7 +1,11 @@
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
+<<<<<<< HEAD
 from database.services.user import delete_user, switch_notify_for_user
+=======
+from database.services.user import delete_user, is_registered
+>>>>>>> Timetable-bot/main
 from filters.dispatcherFilters import IsPrivate
 from handlers.register_handler import start
 from loguru import logger
@@ -10,23 +14,36 @@ router = Router(name="user_handler")
 router.message.filter(IsPrivate)
 
 
+<<<<<<< HEAD
 # TODO: писать включить или выключить уведомления
 
 
+=======
+>>>>>>> Timetable-bot/main
 @router.callback_query(F.data == "delete_user")
 async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>delete_user</b> callback")
     user_id = callback.from_user.id
     async with db.session() as session:
         async with session.begin():
+<<<<<<< HEAD
             if await delete_user(session, user_id):
                 await callback.answer("Вы успешно удалили свой аккаунт")
             else:
                 await callback.answer("Вы не зарегистрированы!")
+=======
+            existUser: bool = await is_registered(session, user_id)
+            if not existUser:
+                await callback.answer("Вы не зарегистрированы!")
+            else:
+                await delete_user(session, user_id)
+                await callback.answer("Вы успешно удалили свой аккаунт")
+>>>>>>> Timetable-bot/main
 
     await callback.message.delete()
 
     return await start(msg=callback.message, state=state, username=username, db=db, existUser=False)
+<<<<<<< HEAD
 
 
 @router.callback_query(F.data == "notify_user")
@@ -37,3 +54,5 @@ async def notify_user(callback: CallbackQuery, username: str, db) -> None:
         async with session.begin():
             await switch_notify_for_user(session=session, user_id=callback.from_user.id)
             await callback.answer()
+=======
+>>>>>>> Timetable-bot/main

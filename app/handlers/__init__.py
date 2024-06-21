@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 from aiogram.types import BotCommand
 
 from .admin_handler import router as admin_handler_router
+=======
+from .admin_panel import router as adminPanel_router
+>>>>>>> Timetable-bot/main
 from .feedback_handler import router as feedbackHandler_router
 from .free_audiences_handler import router as free_audiences_handler_router
 from .main_handler import router as mainHandler_router
@@ -10,7 +14,11 @@ from .settings_hanlder import router as settings_handler_router
 from .user_handler import router as user_handler_router
 
 ROUTERS = [
+<<<<<<< HEAD
     admin_handler_router,
+=======
+    adminPanel_router,
+>>>>>>> Timetable-bot/main
     feedbackHandler_router,
     free_audiences_handler_router,
     mainHandler_router,
@@ -19,9 +27,12 @@ ROUTERS = [
     settings_handler_router,
     user_handler_router,
 ]
+<<<<<<< HEAD
 
 COMMANDS = [
     BotCommand(command="start", description="Команда для регистрация в боте"),
     BotCommand(command="menu", description="Команда для вызова меню"),
     BotCommand(command="feedback", description="Команда для обратной связи"),
 ]
+=======
+>>>>>>> Timetable-bot/main

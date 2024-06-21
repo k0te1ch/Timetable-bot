@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from sqlalchemy import delete, select, update
+=======
+from sqlalchemy import delete, select
+>>>>>>> Timetable-bot/main
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.user import User
@@ -16,9 +20,14 @@ async def get_user_by_id(
 ) -> User | None:
     """
     Returns user by tg-id
+<<<<<<< HEAD
 
     :param session: An `AsyncSession` object
     :param telegram_id: A telegram ID
+=======
+    :param session: An `AsyncSession` object
+    :param telegram_id: A telegram-ID
+>>>>>>> Timetable-bot/main
     :return: `User` or `None`
     """
 
@@ -32,7 +41,10 @@ async def get_user_by_id(
 async def create_user(session: AsyncSession, user_id: int, course: str, direction: str, profile: str, group: str):
     """
     Creates `User` object
+<<<<<<< HEAD
 
+=======
+>>>>>>> Timetable-bot/main
     :param session: An `AsyncSession` object
     :param telegram_id: A telegram-id
     :param full_name: Fullname of user
@@ -63,13 +75,21 @@ async def create_user(session: AsyncSession, user_id: int, course: str, directio
 async def delete_user(session: AsyncSession, user_id: int) -> bool:
     """
     Deletes `User` object
+<<<<<<< HEAD
 
     :param user_id: User ID
+=======
+    :param user_id:
+>>>>>>> Timetable-bot/main
     :param session: An `AsyncSession` object
     :return:
     """
 
+<<<<<<< HEAD
     if not (await is_registered(session, user_id)):
+=======
+    if await get_user_by_id(session, user_id) is None:
+>>>>>>> Timetable-bot/main
         return False
 
     stmt = delete(User).where(User.id == user_id)
@@ -81,7 +101,10 @@ async def delete_user(session: AsyncSession, user_id: int) -> bool:
 async def get_users_for_notify(session: AsyncSession) -> list[User]:
     """
     Get `User` objects for notification
+<<<<<<< HEAD
 
+=======
+>>>>>>> Timetable-bot/main
     :param session: An `AsyncSession` object
     :return: `List[User]`
     """
@@ -90,6 +113,7 @@ async def get_users_for_notify(session: AsyncSession) -> list[User]:
 
     result = await session.execute(stmt)
     return result.scalars().all()
+<<<<<<< HEAD
 
 
 async def switch_notify_for_user(session: AsyncSession, user_id: int) -> bool:
@@ -115,3 +139,5 @@ async def switch_notify_for_user(session: AsyncSession, user_id: int) -> bool:
     await session.commit()
 
     return True
+=======
+>>>>>>> Timetable-bot/main

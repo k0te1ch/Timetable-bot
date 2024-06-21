@@ -14,51 +14,18 @@
 Настроить .env
 
 ```bash
-python -m venv .venv
 poetry shell
 poetry update
 docker-compose --env-file .env build
 docker-compose up -d --force-recreate
-// При первом запуске:
+```
+
+При первом запуске:
+
+```bash
 docker exec -it bot-container bash
-// Далее в #app прописываем:
 python app/bot.py makemigrations -s False
 python app/bot.py migrate -s False
-exit
-```
-
-## Alternative Start 2
-
-Для установки необходим python 3.10, poetry старше 1.8
-Клонировать данный репозиторий
-Настроить .env
-
-```bash
-poetry shell
-poetry update
-make docker-up
-```
-
-При повторном использовании
-
-```bash
-poetry shell
-poetry update
-make docker-run
-```
-
-## Alternative Start 3 (Not Supported)
-
-Для установки необходим python 3.10, poetry старше 1.8
-Клонировать данный репозиторий
-Настроить .env
-
-```bash
-poetry shell
-poetry update
-python app/bot.py makemigrations
-python app/bot.py migrate
-python app/bot.py run
 exit
 ```
 

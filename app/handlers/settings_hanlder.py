@@ -8,12 +8,9 @@ router = Router(name="settings_handler")
 router.message.filter(IsPrivate)
 
 
-<<<<<<< HEAD
 # TODO: писать включить или выключить уведомления
 
 
-=======
->>>>>>> Timetable-bot/main
 @router.callback_query(F.data == "settings")
 async def settings(callback: CallbackQuery, username: str, existUser: bool) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>settings</b> callback")
@@ -24,10 +21,7 @@ async def settings(callback: CallbackQuery, username: str, existUser: bool) -> N
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text="Обратная связь", callback_data="feedback"))
     keyboard.row(InlineKeyboardButton(text="Удалить аккаунт", callback_data="delete_user"))
-<<<<<<< HEAD
     keyboard.row(InlineKeyboardButton(text="Уведомления о парах", callback_data="notify_user"))
-=======
->>>>>>> Timetable-bot/main
     keyboard.row(InlineKeyboardButton(text="Назад", callback_data="menu"))
     await callback.message.edit_text("Настройки", reply_markup=keyboard.as_markup())
     return await callback.answer()

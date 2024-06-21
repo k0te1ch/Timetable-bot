@@ -81,11 +81,7 @@ async def next_day() -> None:
                     selected_day.strftime("%A").capitalize(),
                 )
                 await bot.send_message(user.id, subject)
-<<<<<<< HEAD
                 logger.debug(f"Отправлено сообщение пользователю {user.id} на следующий день")
-=======
-                logger.debug("Отправлено сообщение пользователю {user.id} на следующий день")
->>>>>>> Timetable-bot/main
     logger.debug("Все сообщения отправлены")
 
 

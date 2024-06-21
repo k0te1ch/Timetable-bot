@@ -21,8 +21,8 @@ docker-compose up -d --force-recreate
 // При первом запуске:
 docker exec -it bot-container bash
 // Далее в #app прописываем:
-python bot.py makemigrations -s False
-python bot.py migrate -s False
+python app/bot.py makemigrations -s False
+python app/bot.py migrate -s False
 exit
 ```
 
@@ -54,9 +54,9 @@ make docker-run
 ```bash
 poetry shell
 poetry update
-python bot.py makemigrations
-python bot.py migrate
-python bot.py run
+python app/bot.py makemigrations
+python app/bot.py migrate
+python app/bot.py run
 exit
 ```
 

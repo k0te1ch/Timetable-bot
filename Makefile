@@ -38,14 +38,11 @@ docker-build:
 docker-test: docker-build
 	docker-compose run test-runner pytest
 
-docker-run: docker-build
+docker-run:
 	docker-compose up -d --force-recreate
 
 docker-up: docker-build
 	docker-compose up -d --force-recreate
-	docker exec -it bot-container bash
-	python bot.py makemigrations -s False
-	python bot.py migrate -s False
 
 docker-stop:
 	docker-compose down

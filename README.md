@@ -2,6 +2,7 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Установка
 =======
 ## 👥 Developers
@@ -29,12 +30,23 @@ docker-compose --env-file .env build
 docker-compose up -d --force-recreate
 ```
 =======
+=======
+[![CC BY-NC-ND 4.0][cc-by-nc-nd-shield]][cc-by-nc-nd]
+
+Timetable-bot is a telegram bot designed to send a schedule. It provides users with up-to-date information about upcoming classes and events related to the learning process. The bot integrates with the schedule of Voronezh State University (VSU), which allows students to receive timely notifications about the schedule, as well as detailed information about each lesson
+
+## 🛠 Getting Started
+
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
 ### Requirements
 
 - Python 3.10
 - Poetry 1.8 или новее
 - Docker
+<<<<<<< HEAD
 >>>>>>> b84f6c6 ("Update README.md file and LICENSE file")
+=======
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
 
 ### Installation
 
@@ -64,6 +76,7 @@ docker exec -it bot-container bash
 python app/bot.py makemigrations -s False
 python app/bot.py migrate -s False
 exit
+<<<<<<< HEAD
 ```
 
 <<<<<<< HEAD
@@ -114,6 +127,10 @@ exit
 =======
 =======
 >>>>>>> 14c1f28 (Fixed all errors)
+=======
+```
+
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
 ## 🙋‍♂️ FAQs
 
 - **I encountered an error using Docker, the bot keeps restarting, what should I do?** This option is possible if the settings are incorrect .the env file. In this case, delete the generated volumes and containers in Docker, then recheck the env, run poetry update again in the console and try again.
@@ -123,6 +140,7 @@ exit
 - **How do I run make on windows?** - Download the program [GnuWin](https://sourceforge.net/projects/gnuwin32), then in the root directory, find make.exe add this path to the environment variables in the PATH environment.
 
 ## 📚 Usage Examples
+<<<<<<< HEAD
 >>>>>>> d7490cd (Update readme)
 
 Timetable for VSU
@@ -145,6 +163,16 @@ Timetable for VSU
 See LICENSE.txt file for more details.
 >>>>>>> d7490cd (Update readme)
 =======
+=======
+
+Timetable for VSU
+
+- tg: [@TimetableVSU_bot](https://t.me/TimetableVSU_bot)
+- vk (not supported): @shedulevsubot
+
+## 👥 Developers
+
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
 - tg: [@k0te1ch](https://t.me/k0te1ch)
 - tg: [@ShyDamn](https://t.me/ShyDamn)
 
@@ -160,4 +188,7 @@ See LICENSE file for more details.
 
 [cc-by-nc-nd]: http://creativecommons.org/licenses/by-nc-nd/4.0/
 [cc-by-nc-nd-shield]: https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0-lightgrey.svg
+<<<<<<< HEAD
 >>>>>>> b84f6c6 ("Update README.md file and LICENSE file")
+=======
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf

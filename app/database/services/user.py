@@ -33,9 +33,12 @@ async def create_user(session: AsyncSession, user_id: int, course: str, directio
     """
     Creates `User` object
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 14c1f28 (Fixed all errors)
+=======
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
     :param session: An `AsyncSession` object
     :param telegram_id: A telegram-id
     :param full_name: Fullname of user
@@ -85,9 +88,12 @@ async def get_users_for_notify(session: AsyncSession) -> list[User]:
     """
     Get `User` objects for notification
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 14c1f28 (Fixed all errors)
+=======
+>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
     :param session: An `AsyncSession` object
     :return: `List[User]`
     """

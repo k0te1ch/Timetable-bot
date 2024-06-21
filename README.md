@@ -18,8 +18,8 @@ docker-compose up -d --force-recreate
 // При первом запуске:
 docker exec -it bot-container bash
 // Далее в #app прописываем:
-python bot.py makemigrations -s False
-python bot.py migrate -s False
+python app/bot.py makemigrations -s False
+python app/bot.py migrate -s False
 exit
 ```
 
@@ -52,9 +52,16 @@ make docker-run
 poetry shell
 >>>>>>> 8eef424 (Update README.md)
 poetry update
+<<<<<<< HEAD
 python bot.py makemigrations
 python bot.py migrate
 python bot.py run
+=======
+python app/bot.py makemigrations
+python app/bot.py migrate
+python app/bot.py run
+exit
+>>>>>>> 78aa571 (Refactoring)
 ```
 
 ## Примеры использования

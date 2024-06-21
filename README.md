@@ -12,7 +12,7 @@
 Клонировать данный репозиторий
 Настроить .env
 
-```console
+```bash
 python -m venv .venv
 // в .venv переходим в Scripts, запускаем activate.ps1 в консоли
 poetry update
@@ -32,14 +32,14 @@ exit
 Клонировать данный репозиторий
 Настроить .env
 
-```console
+```bash
 poetry shell
 poetry update
 make docker-up
 ```
 
 При повторном использовании 
-```console
+```bash
 poetry shell
 poetry update
 make docker-run
@@ -51,7 +51,7 @@ make docker-run
 Клонировать данный репозиторий
 Настроить .env
 
-```console
+```bash
 poetry shell
 poetry update
 python bot.py makemigrations

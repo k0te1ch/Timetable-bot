@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
+import os
 
 import pytest
 
@@ -18,7 +19,7 @@ def test_download_table(mock_load_workbook, mock_requests_get, sp):
     mock_load_workbook.return_value.active.max_row = 2
     mock_load_workbook.return_value.active.max_column = 2
     filename = sp._downloadTable()
-    assert str(filename) == "c:\\Users\\den03\\Timetable_bot\\files\\TimeTable.xlsx"
+    assert str(filename) == os.path.join(os.getcwd(), "files", "TimeTable.xlsx")
 
 
 def test_parse_not_empty():
@@ -31,7 +32,6 @@ def test_parse_not_empty():
     assert len(parsed_table[0]) > 0
 
 
-"""
 
 def test_to_object(sp):
     table_data = [
@@ -42,28 +42,17 @@ def test_to_object(sp):
 
     assert parsed_data['2 курс']['Прикладная Информатика']['Прикладная Информатика в Экономике']['13.1']['Числитель']['Понедельник'] == 'Методы вычислений в бизнес-приложениях доц. Копытин А.В. 295'
 
-
-def test_to_text(sp):
-    input_data = {'1 курс': {'Direction A': {'Profile A': {'Group A': {'Числитель': {'Monday': 'Subject A'}}}}}}
-    expected_output = '1 курс\n- Direction A\n-- Profile A\n--- Group A\n---- Числитель\n----- Monday: Subject A\n'
-
-    result = sp._toText(input_data)
-
-    assert result.strip() == expected_output.strip()
-
 def test_get_schedule_for_day(sp):
     fake_data = {
-        '1 курс': {
-            'Direction A': {
-                'Profile A': {
-                    'Group A': {
+        '2 курс': {
+            'Прикладная Информатика': {
+                'Прикладная Информатика в Экономик': {
+                    '13.1': {
                         'Числитель': {
-                            'Monday': 'Subject A',
-                            'Tuesday': 'Subject B'
+                            'Понедельник': 'Методы вычислений в бизнес-приложениях доц. Копытин А.В. 295'
                         },
                         'Знаменатель': {
-                            'Monday': '',
-                            'Tuesday': ''
+                            'Понедельник': 'Методы вычислений в бизнес-приложениях доц. Копытин А.В. 295'
                         }
                     }
                 }
@@ -75,9 +64,6 @@ def test_get_schedule_for_day(sp):
     result = sp.getScheduleForDay('1 курс', 'Direction A', 'Profile A', 'Group A', 'Числитель', 'Monday')
 
     assert result == 'Monday (Числитель)\n- Subject A'
-
-"""
-
 
 def test_get_table_obj(sp):
     fake_data = {"fake": "data"}

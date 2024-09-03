@@ -1,4 +1,5 @@
 # Files
+.stfolder
 app/utils/table.py
 migrations/
 actions-runner/

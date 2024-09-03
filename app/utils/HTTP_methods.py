@@ -1,3 +1,7 @@
+import asyncio
+
+import aiofiles
+import aiohttp
 from loguru import logger
 
 # FIXME: this module
@@ -65,3 +69,29 @@ def downloadFile(url: str, filename: str, chunkSize: int = 65536) -> None:
                 if chunk:
                     file.write(chunk)
     logger.opt(colors=True).debug(f"<g>File downloaded <y>({filename})</y></g>")
+
+
+async def download_file(url, destination):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    async with aiofiles.open(destination, "wb") as f:
+                        while True:
+                            chunk = await response.content.read(1024)
+                            if not chunk:
+                                break
+                            await f.write(chunk)
+                    return True
+                else:
+                    print(f"Error downloading file, status code: {response.status}")
+                    return False
+    except aiohttp.ClientError as e:
+        print(f"Aiohttp client error: {e}")
+        return False
+    except asyncio.CancelledError:
+        print("Download was cancelled")
+        return False
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+        return False

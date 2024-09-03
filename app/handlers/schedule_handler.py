@@ -3,11 +3,12 @@ from datetime import datetime, timedelta
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from config import TIMEZONE
-from database.models.user import User
+from database.models import User
+from database.services.group import get_group_by_id
 from database.services.user import get_users_for_notify
 from filters.dispatcherFilters import IsPrivate
 from loguru import logger
-from utils.ScheduleParser import scheduleParser
+from utils.schedule_parser import schedule_parser
 
 router = Router(name="schedule_handler")
 router.message.filter(IsPrivate)
@@ -33,11 +34,11 @@ async def next_para(time: str) -> None:
                 selected_day: datetime = datetime.now(TIMEZONE)
                 current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
 
-                subject: str | None = scheduleParser.getScheduleForTime(
-                    user.course,
-                    user.direction,
-                    user.profile,
-                    user.group,
+                subject: str | None = schedule_parser.getScheduleForTime(
+                    user.group.profile.direction.course.name,
+                    user.direction.name,
+                    user.profile.name,
+                    user.group.name,
                     current_week,
                     selected_day.strftime("%A").capitalize(),
                     time,
@@ -70,13 +71,15 @@ async def next_day() -> None:
                 locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
 
                 selected_day: datetime = datetime.now(TIMEZONE) + timedelta(hours=2)
-                current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
+                current_week: str = (
+                    "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"
+                )  # FIXME: костыль
 
-                subject = scheduleParser.getScheduleForDay(
-                    user.course,
-                    user.direction,
-                    user.profile,
-                    user.group,
+                subject = schedule_parser.getScheduleForDay(
+                    user.group.profile.direction.course.name,
+                    user.direction.name,
+                    user.profile.name,
+                    user.group.name,
                     current_week,
                     selected_day.strftime("%A").capitalize(),
                 )
@@ -90,7 +93,7 @@ async def next_day() -> None:
 @router.callback_query(F.data == "timetable_nextday")
 @router.callback_query(F.data == "timetable_current_week")
 @router.callback_query(F.data == "timetable_next_week")
-async def timetableForDay(callback: CallbackQuery, username: str, existingUser: User | None) -> None:
+async def timetableForDay(callback: CallbackQuery, username: str, existingUser: User | None, db) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>timetable</b> callback")
 
     if existingUser is None:
@@ -101,13 +104,15 @@ async def timetableForDay(callback: CallbackQuery, username: str, existingUser: 
     locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
 
     selected_day: datetime = datetime.now(TIMEZONE)
-    current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
+    current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"  # FIXME: Костыль
 
     if callback.data == "timetable_today":
         pass
     elif callback.data == "timetable_nextday":
         selected_day += timedelta(days=1)
-        current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
+        current_week: str = (
+            "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"
+        )  # FIXME: костыль
     elif callback.data == "timetable_current_week":
         start_of_week = selected_day - timedelta(days=selected_day.weekday())
         end_of_week = start_of_week + timedelta(days=6)
@@ -118,17 +123,17 @@ async def timetableForDay(callback: CallbackQuery, username: str, existingUser: 
                 continue
             if i != 0 and day.strftime("%A")[0].isupper():
                 schedule_for_week_str += f"{day.strftime('%A')} ({current_week}):\n"
-            schedule_for_week_str += (
-                scheduleParser.getScheduleForDay(
-                    existingUser.course,
-                    existingUser.direction,
-                    existingUser.profile,
-                    existingUser.group,
-                    current_week,
-                    day.strftime("%A").capitalize(),
+            async with db.session() as session:
+                async with session.begin():
+                    group = await get_group_by_id(session, existingUser.group_id)
+                schedule_for_week_str += (
+                    await schedule_parser.getScheduleForDay(
+                        group,
+                        current_week,
+                        day.strftime("%A").capitalize(),
+                    )
+                    + "\n\n"
                 )
-                + "\n\n"
-            )
         await callback.message.answer(text=schedule_for_week_str.strip())
         return await callback.answer("Ваше расписание")
 
@@ -143,12 +148,12 @@ async def timetableForDay(callback: CallbackQuery, username: str, existingUser: 
                 continue
             if i != 0 and day.strftime("%A")[0].isupper():
                 schedule_for_week_str += f"{day.strftime('%A')} ({next_week_type}):\n"
+            async with db.session() as session:
+                async with session.begin():
+                    group = await get_group_by_id(session, existingUser.group_id)
             schedule_for_week_str += (
-                scheduleParser.getScheduleForDay(
-                    existingUser.course,
-                    existingUser.direction,
-                    existingUser.profile,
-                    existingUser.group,
+                await schedule_parser.getScheduleForDay(
+                    group,
                     next_week_type,
                     day.strftime("%A").capitalize(),
                 )
@@ -158,12 +163,13 @@ async def timetableForDay(callback: CallbackQuery, username: str, existingUser: 
         return await callback.answer("Ваше расписание")
 
     schedule_for_week_str = f"Расписание на {selected_day.strftime('%A')} ({current_week}):\n\n"
+    async with db.session() as session:
+        async with session.begin():
+            group = await get_group_by_id(session, existingUser.group_id)
+
     schedule_for_week_str += (
-        scheduleParser.getScheduleForDay(
-            existingUser.course,
-            existingUser.direction,
-            existingUser.profile,
-            existingUser.group,
+        await schedule_parser.getScheduleForDay(
+            group,
             current_week,
             selected_day.strftime("%A").capitalize(),
         )

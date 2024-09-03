@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from database.services.user import delete_user, switch_notify_for_user
+from database.services.user import delete_user_by_telegram_id, switch_notify_for_user
 from filters.dispatcherFilters import IsPrivate
 from handlers.register_handler import start
 from loguru import logger
@@ -19,7 +19,7 @@ async def deleteUser(callback: CallbackQuery, username: str, state: FSMContext, 
     user_id = callback.from_user.id
     async with db.session() as session:
         async with session.begin():
-            if await delete_user(session, user_id):
+            if await delete_user_by_telegram_id(session, user_id):
                 await callback.answer("Вы успешно удалили свой аккаунт")
             else:
                 await callback.answer("Вы не зарегистрированы!")

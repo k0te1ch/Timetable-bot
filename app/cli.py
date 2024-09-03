@@ -1,4 +1,3 @@
-# TODO ПЕРЕДЕЛАТЬ ВСЁ ТУТ
 import asyncio
 import os
 from datetime import datetime
@@ -13,18 +12,19 @@ from config import DATABASE_URL, ENABLE_APSCHEDULER, SKIP_UPDATES
 from handlers import COMMANDS
 from loguru import logger
 from services import init_scheduler_jobs, scheduler
+from utils.schedule_parser import init_schedule_parser, schedule_parser
 
 
 @logger.catch
 def get_alembic_conf(sync: bool = False):
     alembic_cfg = Config()
-    alembic_cfg.set_main_option("script_location", "app/database/migrations")
+    alembic_cfg.set_main_option("script_location", "migrations")
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
-    alembic_cfg.config_file_name = os.path.join("app/database/migrations", "alembic.ini")
-    if os.path.isdir("app/database/migrations") is False:
+    alembic_cfg.config_file_name = os.path.join("migrations", "alembic.ini")
+    if os.path.isdir("migrations") is False:
         logger.opt(colors=True).info("<light-blue>Initiating alembic...</light-blue>")
-        alembic.init(alembic_cfg, "app/database/migrations", "generic" if sync else "async")
-        with open("app/database/migrations/env.py", "r+") as f:
+        alembic.init(alembic_cfg, "migrations", "generic" if sync else "async")
+        with open("migrations/env.py", "r+") as f:
             content = f.read()
             content = content.replace(
                 "target_metadata = None", "from database import db\ntarget_metadata = db.metadata"
@@ -48,7 +48,7 @@ def set_bot_properties():
 # CLI COMMANDS
 class CliGroup(click.Group):
     def list_commands(self, ctx):
-        return ["showmigrations", "makemigrations", "migrate", "run"]
+        return ["showmigrations", "makemigrations", "migrate", "run", "init"]
 
 
 @click.group(cls=CliGroup)
@@ -79,6 +79,7 @@ async def _run():
         scope=BotCommandScopeAllPrivateChats(),
     )
 
+    await init_schedule_parser(schedule_parser)
     logger.success("Bot polling started!")
     await bot.dp.start_polling(bot.bot, skip_updates=SKIP_UPDATES)
 
@@ -90,6 +91,21 @@ def run():
 
 
 @logger.catch
+async def _init():
+    logger.info("Started init tasks")
+
+    from database.services.init_database import init_database
+
+    await init_database()
+
+
+@cli.command()
+@logger.catch
+def init():
+    asyncio.run(_init())
+
+
+@logger.catch
 @cli.command()
 @click.option("--verbose", default=False, is_flag=True)
 def showmigrations(verbose):
@@ -98,20 +114,12 @@ def showmigrations(verbose):
     logger.info(history)
 
 
-def load_models():
-    from database.models import models
-
-    logger.opt(colors=True).info(f"Loaded <y>{len(models)}</y> models")
-
-
 @cli.command()
 @click.option("-m", "--message", default=None)
 @click.option("-s", "--sync", default=True)
 def makemigrations(message, sync):
     if message is None:
         message = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
-    load_models()
 
     try:
         cfg = get_alembic_conf(sync)

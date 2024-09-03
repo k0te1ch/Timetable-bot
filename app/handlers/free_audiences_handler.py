@@ -7,7 +7,7 @@ from filters.dispatcherFilters import IsPrivate
 from forms.form_utils import form_step
 from forms.free_audiences import FreeAudiences
 from loguru import logger
-from utils.ScheduleParser import scheduleParser
+from utils.schedule_parser import schedule_parser
 
 # TODO: Добавить кнопку отмены
 
@@ -20,7 +20,7 @@ router.message.filter(IsPrivate)
 async def free_audiences(callback: CallbackQuery, state: FSMContext):
     await state.set_state(FreeAudiences.day)
 
-    free_audiences = scheduleParser.getFreeAudiencesObj()
+    free_audiences = schedule_parser.getFreeAudiencesObj()
     await state.update_data(free_audiences=free_audiences, free_audiences_glob=free_audiences)
 
     keyboard = InlineKeyboardBuilder()
@@ -89,4 +89,6 @@ async def get_numerator(callback: CallbackQuery, state: FSMContext, username: st
     await state.clear()
     numerator = list(state_data["free_audiences"].keys())[int(callback.data[len("numerator_") :])]
     await callback.answer("Готово!")
-    await callback.message.edit_text(scheduleParser.getFreeAudiences(state_data["day"], state_data["time"], numerator))
+    await callback.message.edit_text(
+        schedule_parser.getFreeAudiences(state_data["day"], state_data["time"], numerator)
+    )

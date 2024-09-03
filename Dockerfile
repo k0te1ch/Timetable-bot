@@ -1,5 +1,5 @@
 # Stage 1: Базовый образ для установки зависимостей
-FROM python:3.10.10-slim-bullseye as base
+FROM python:3.12.4-slim-bullseye as base
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1

@@ -1,8 +1,8 @@
 import asyncio
 import os
-import re
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from handlers import ROUTERS
@@ -18,17 +18,9 @@ from services.redis import redis
 # IMPORT SETTINGS
 MAIN_MODULE_NAME = os.path.basename(__file__)[:-3]
 
-try:
-    from config import API_TOKEN, PARSE_MODE
+from config import API_TOKEN, PARSE_MODE
 
-    logger.debug("Loading settings from config")
-except ModuleNotFoundError:
-    logger.critical("Config file not found! Please create config.py file")
-    exit()
-except ImportError as err:
-    var = re.match(r"cannot import name '(\w+)' from", err.msg).groups()[0]
-    logger.critical(f"{var} is not defined in the config file")
-    exit()
+logger.debug("Loading settings from config")
 
 
 # GET TG BOT OBJECT
@@ -55,7 +47,7 @@ def _get_bot_obj() -> Bot:
     else:
         logger.opt(colors=True).debug("The standard api tg server is used")
 
-    bot = Bot(token=API_TOKEN, parse_mode=PARSE_MODE, session=TG_SERVER)
+    bot = Bot(token=API_TOKEN, session=TG_SERVER, default=DefaultBotProperties(parse_mode=PARSE_MODE))
     logger.debug("Bot is configured")
     return bot
 

@@ -1,16 +1,21 @@
+import asyncio
 import copy
 import datetime
 import re
 from collections import OrderedDict
 from typing import Any
 
+import aiohttp
 import openpyxl
-import requests
-from config import CS_URL, TIMETABLE_PATH, TIMEZONE
+from config import TIMETABLE_PATH, TIMEZONE
+from database.database import db
+from database.models import Faculty, Group
+from database.services.faculty import create_group_direction_profile_course, get_faculty_by_id
+from database.services.group import bifurcation_group
 from loguru import logger
 from lxml import etree
-from lxml.etree import ParserError
 
+# TODO: Подключить сюда redis
 # TODO: Объединить выходные (объединить одинаковые дни)
 # TODO: Оптимизировать получение расписания на неделю (ну очень долго)
 # TODO: Property
@@ -34,7 +39,6 @@ class Subject:
     Class to handle information about subject
     """
 
-    # TODO: Сюда перенести время пары
     def __init__(
         self,
         name: str,
@@ -95,6 +99,9 @@ class ScheduleParser:
     Class to parse the timetable spreadsheet and convert it into a dictionary of objects.
     """
 
+    _faculty_id: int = 1  #! TODO: Надо продумать этот момент
+    _faculty: Faculty
+    _timetable_url: str = None
     _time: set[str] = set()
     _table: list[list[str]] = None
     _tableObj: OrderedDict[Any] = None
@@ -102,9 +109,12 @@ class ScheduleParser:
     _audiences: set[str] = set()
     _temp_audiences: list[str] = list()
 
-    def __init__(self):
-        self._toObject(self._parse(self._downloadTable()))
-        self._makeFreeAudiences()
+    async def __ainit__(self):
+        async with db.session() as session:
+            async with session.begin():
+                self._faculty = await get_faculty_by_id(session, self._faculty_id)
+        await self._toObject(await self._parse(await self._downloadTable()))
+        await self._makeFreeAudiences()
 
     async def updateTable(self) -> None:
         """
@@ -119,8 +129,11 @@ class ScheduleParser:
         self._freeAudiences: OrderedDict[Any] = None
         self._audiences: set[str] = set()
         self._temp_audiences: list[str] = list()
-        self._toObject(self._parse(self._downloadTable()))
-        self._makeFreeAudiences()
+        async with db.session() as session:
+            async with session.begin():
+                self._faculty = await get_faculty_by_id(session, self._faculty_id)
+        await self._toObject(await self._parse(await self._downloadTable()))
+        await self._makeFreeAudiences()
         logger.info("Timetable updated successfully")
 
     async def get_time(self) -> set[str]:
@@ -168,25 +181,38 @@ class ScheduleParser:
             schedule.popitem(last=True)
         return schedule
 
-    def _downloadTable(self) -> str:
+    async def _downloadTable(self) -> str:
         try:
-            parser = etree.HTMLParser()
-            dom = etree.HTML(requests.get(CS_URL).content, parser)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self._faculty.timetable_url) as response:
+                    if response.status == 200:
+                        content = await response.read()
 
-            idTable = re.findall(r"\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
-            from utils.HTTPMethods import downloadFile
+                        parser = etree.HTMLParser()
+                        dom = etree.HTML(content, parser)
 
-            downloadFile(
-                f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}", TIMETABLE_PATH
-            )
-            logger.opt(colors=True).debug("<g>Updated table</g>")
-            return TIMETABLE_PATH
-        except (requests.RequestException, ParserError) as e:
+                        idTable = re.findall(r"\/d\/(.*?)\/", ",".join(dom.xpath("//a/@href")))[0]
+
+                        # Асинхронно скачиваем файл
+                        from utils.HTTP_methods import download_file
+
+                        await download_file(
+                            f"https://docs.google.com/spreadsheets/d/{idTable}/export?format=xlsx&id={idTable}",
+                            TIMETABLE_PATH,
+                        )
+
+                        logger.opt(colors=True).debug("<g>Updated table</g>")
+                        return TIMETABLE_PATH
+                    else:
+                        logger.error(f"Error downloading the timetable: HTTP status {response.status}")
+        except (aiohttp.ClientError, etree.ParserError, IndexError) as e:
             logger.error(f"Error downloading the timetable: {e}")
 
-    def _parse(self, filename):
+        return ""
+
+    async def _parse(self, filename):
         try:
-            workbook = openpyxl.load_workbook(filename)
+            workbook = await asyncio.to_thread(openpyxl.load_workbook, filename)
             sheet = workbook.active
         except FileNotFoundError as e:
             logger.error(f"File not found: {e}")
@@ -214,10 +240,32 @@ class ScheduleParser:
 
         return self._table
 
-    def _toObject(self, table):
+    async def _toObject(self, table):
         objects = OrderedDict()
+        prev_course = table[1][2].strip()
         for i in range(2, len(table[0])):
             course, group, direction, profile = (table[j][i].strip() for j in range(4))
+            if course == "None":
+                course = prev_course
+            async with db.session() as session:
+                async with session.begin():
+                    now = datetime.date.today()
+                    year = now.year - int(course.split()[0])
+                    if datetime.date(year, 1, 1) > now > datetime.date(year, 8, 31):
+                        year -= 1
+                    _group = await create_group_direction_profile_course(
+                        session, group, year, profile, direction, self._faculty.id, course
+                    )
+                async with session.begin():
+                    if course in objects and direction in objects[course] and profile in objects[course][direction]:
+                        if group in objects[course][direction][profile] and _group is not None:
+                            await bifurcation_group(
+                                session=session,
+                                group_id=_group.id,
+                                group_name=group,
+                                profile_id=_group.profile_id,
+                                year_of_study=_group.year_of_study,
+                            )
             timetable = OrderedDict({"Числитель": OrderedDict(), "Знаменатель": OrderedDict()})
             numerator = True
             previous_subject: dict[Subject] = dict()
@@ -281,11 +329,10 @@ class ScheduleParser:
             else:
                 objects[course][direction][profile][group] = timetable
 
+            prev_course = course
+
         self._tableObj = objects
         return objects
-
-    def _toText(self, object) -> str:
-        return ""
 
     def getScheduleForTime(self, course, direction, profile, group, numerator, day, time) -> str | None:
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
@@ -321,11 +368,15 @@ class ScheduleParser:
 
         return f"{day}, ({numerator})\n\n{time} => {subject}"
 
-    def getScheduleForDay(self, course, direction, profile, group, numerator, day):
+    async def getScheduleForDay(self, group: Group, numerator, day):
         tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
         daySchedule: str = f"{day} ({numerator})\n"
 
-        for key in (course, direction, profile, group, numerator, day):
+        profile = group.profile
+        direction = profile.direction
+        course = direction.course
+
+        for key in (course.name, direction.name, profile.name, group.name, numerator, day):
             if key in tempObj:
                 tempObj = tempObj[key]
             else:
@@ -353,9 +404,9 @@ class ScheduleParser:
 
         return daySchedule[:-2]
 
-    def getTableObj(self):
+    async def getTableObj(self):
         if self._tableObj is None:
-            self._toObject(self._parse(self._downloadTable()))
+            await self._toObject(await self._parse(await self._downloadTable()))
 
         return self.subjects_to_dict(copy.deepcopy(self._tableObj))
 
@@ -373,20 +424,20 @@ class ScheduleParser:
                                     ] = subject.to_dict()
         return tableObj
 
-    def getFreeAudiencesObj(self):
+    async def getFreeAudiencesObj(self):
         if self._freeAudiences is None or len(self._freeAudiences) == 0:
-            self._makeFreeAudiences()
+            await self._makeFreeAudiences()
         return self._freeAudiences
 
-    def getFreeAudiences(self, day, time, numerator):
+    async def getFreeAudiences(self, day, time, numerator):
         if self._freeAudiences is None or len(self._freeAudiences) == 0:
-            self._makeFreeAudiences()
+            await self._makeFreeAudiences()
         return "Вот список свободных аудиторий: " + ", ".join(self._freeAudiences[day][time][numerator])
 
     def _filter_audiences(self):
         pass
 
-    def _makeFreeAudiences(self):
+    async def _makeFreeAudiences(self):
         tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
 
         freeAudiences: OrderedDict[Any] = OrderedDict()
@@ -438,27 +489,9 @@ class ScheduleParser:
         return freeAudiences
 
 
-scheduleParser = ScheduleParser()
-if __name__ == "__main__":
-    table = scheduleParser.getScheduleForDay(
-        "1 курс",
-        'Направление "Прикладная информатика"',
-        'профиль "Прикладная информатика в экономике"',
-        "13 группа",
-        "Числитель",
-        "Пятница",
-    )
+async def init_schedule_parser(scheduleParser):
+    await scheduleParser.__ainit__()
+    return scheduleParser
 
-    print(table)
-    print(scheduleParser.getFreeAudiences("Среда", "9:45 - 11:20", "Числитель"))
-    print(
-        scheduleParser.getScheduleForTime(
-            "2 курс",
-            'Направление "Прикладная информатика"',
-            'профиль "Прикладная информатика в экономике"',
-            "13.1 группа",
-            "Числитель",
-            "Понедельник",
-            "8:00 - 9:35",
-        )
-    )
+
+schedule_parser = ScheduleParser()

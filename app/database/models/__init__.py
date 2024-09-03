@@ -1,3 +1,3 @@
-from .user import User
+from .models import Course, Direction, Faculty, Group, Profile, Role, Settings, User
 
-models = [User]
+__all__ = ["User", "Role", "Group", "Profile", "Direction", "Faculty", "Settings", "Course"]

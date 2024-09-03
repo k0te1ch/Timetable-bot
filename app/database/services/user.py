@@ -1,104 +1,105 @@
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.user import User
+from ..models import Group, Role, Settings, User
 
-# from .exceptions import UserNotFound, UserAlreadyExists
+# TODO: Аннотации
 
 
 async def is_registered(session: AsyncSession, id: int) -> bool:
-    return (await get_user_by_id(session, id)) is not None
+    return (await get_user_by_telegram_id(session, id)) is not None
 
 
-async def get_user_by_id(
-    session: AsyncSession,
-    id: int,
-) -> User | None:
+async def get_user_by_telegram_id(session: AsyncSession, telegram_id: int) -> User | None:
     """
-    Returns user by tg-id
+    Returns user by telegram_id
 
     :param session: An `AsyncSession` object
-    :param telegram_id: A telegram ID
+    :param id: A telegram_id
     :return: `User` or `None`
     """
 
-    stmt = select(User).where(User.id == id)
+    stmt = select(User).where(User.telegram_id == telegram_id)
 
     result = await session.execute(stmt)
 
     return result.scalars().first()
 
 
-async def create_user(session: AsyncSession, user_id: int, course: str, direction: str, profile: str, group: str):
+async def create_user(
+    session: AsyncSession,
+    telegram_id: str,
+    vk_id: str,
+    first_name: str,
+    middle_name: str,
+    last_name: str,
+    role: Role,
+    group: Group | None = None,
+) -> bool:
     """
     Creates `User` object
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
->>>>>>> 14c1f28 (Fixed all errors)
-=======
->>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
     :param session: An `AsyncSession` object
-    :param telegram_id: A telegram-id
-    :param full_name: Fullname of user
-    :param token: A token of user
-    :return: Created `User`
+    :param telegram_id: Telegram ID
+    :param vk_id: VK ID
+    :param first_name: First name of user
+    :param middle_name: Middle name of user
+    :param last_name: Last name of user
+    :param role: `Role`
+    :param group: `Group` (optional)
+    :return: `bool` indicating whether the user was successfully created
     """
 
-    existed_user = await is_registered(session, user_id)
+    existed_user = await is_registered(session, telegram_id)
 
     if existed_user:
         return False
 
     obj = User(
-        id=user_id,
-        course=course,
-        direction=direction,
-        profile=profile,
+        telegram_id=telegram_id,
+        vk_id=vk_id,
+        first_name=first_name,
+        middle_name=middle_name,
+        last_name=last_name,
+        role=role,
         group=group,
-        send_notifications=True,
     )
     session.add(obj)
     await session.flush()
     await session.refresh(obj)
+    await session.commit()
 
     return True
 
 
-async def delete_user(session: AsyncSession, user_id: int) -> bool:
+async def delete_user_by_telegram_id(session: AsyncSession, telegram_id: int) -> bool:
     """
     Deletes `User` object
 
-    :param user_id: User ID
+    :param telegram_id: telegram_id
     :param session: An `AsyncSession` object
-    :return:
+    :return: `bool` indicating whether the user was successfully deleted
     """
 
-    if not (await is_registered(session, user_id)):
+    if not (await is_registered(session, telegram_id)):
         return False
 
-    stmt = delete(User).where(User.id == user_id)
+    stmt = delete(User).where(User.telegram_id == telegram_id)
 
     await session.execute(stmt)
+    await session.commit()
     return True
 
 
 async def get_users_for_notify(session: AsyncSession) -> list[User]:
     """
     Get `User` objects for notification
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
->>>>>>> 14c1f28 (Fixed all errors)
-=======
->>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf
     :param session: An `AsyncSession` object
     :return: `List[User]`
     """
 
-    stmt = select(User).where(User.send_notifications)
+    stmt = select(User).where(User.settings.notifications)
 
     result = await session.execute(stmt)
     return result.scalars().all()
@@ -113,10 +114,14 @@ async def switch_notify_for_user(session: AsyncSession, user_id: int) -> bool:
     :return: `bool` indicating whether the user was found and the notify parameter was successfully toggled
     """
 
+    user = await get_user_by_telegram_id(session, user_id)
+    if user is None:
+        return False
+
     stmt = (
-        update(User)
-        .where(User.id == user_id)
-        .values(send_notifications=(~User.send_notifications))
+        update(Settings)
+        .where(Settings.user_id == user_id)
+        .values(notifications=not user.settings.notifications)
         .execution_options(synchronize_session="fetch")
     )
     result = await session.execute(stmt)

@@ -44,6 +44,21 @@ services:
     networks:
       - aiogramnetwork
 
+  pgadmin:
+    image: dpage/pgadmin4:8.8
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - 15432:80
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - aiogramnetwork
+
   redis:
     container_name: redis-container
     image: redis:7.2.4-alpine
@@ -55,31 +70,33 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - redis_data:/data
+      - redisdata:/data
     networks:
       - aiogramnetwork
 
-  test-runner:
-    container_name: test-runner-container
-    build:
-      context: .
-      target: test
-    volumes:
-      - .env:/app/.env
-    environment:
-      - LC_ALL=ru_RU.UTF-8
-      - LANG=ru_RU.UTF-8
-    entrypoint: ["echo", "Test runner container is ready. Use 'docker-compose run test-runner run-tests' to execute tests."]
-    command: ["tail", "-f", "/dev/null"]
+#  test-runner:
+#    container_name: test-runner-container
+#    build:
+#      context: .
+#      target: test
+#    volumes:
+#      - .env:/app/.env
+#    environment:
+#      - LC_ALL=ru_RU.UTF-8
+#      - LANG=ru_RU.UTF-8
+#    entrypoint: ["echo", "Test runner container is ready. Use 'docker-compose run test-runner run-tests' to execute tests."]
+#    command: ["tail", "-f", "/dev/null"]
 
 networks:
   aiogramnetwork:
     driver: bridge
 
 volumes:
-  redis_data:
+  redisdata:
     driver: local
   pgdata:
+    driver: local
+  pgadmin:
     driver: local
 
 # TODO Нужно сначала создавать миграции

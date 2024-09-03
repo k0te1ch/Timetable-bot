@@ -10,6 +10,7 @@ from services.redis import redis
 
 # TODO: Аннотации
 # TODO: Обработка ошибок
+# TODO: Задачи хранить в каком-то формате
 
 
 def _get_scheduler_obj(redis_instance: Redis | _NoneModule) -> AsyncIOScheduler:
@@ -43,10 +44,10 @@ async def init_scheduler_jobs() -> None:
 
     from apscheduler.triggers.cron import CronTrigger
     from handlers.schedule_handler import next_day, next_para
-    from utils import scheduleParser
+    from utils import schedule_parser
 
     try:
-        for time_str in await scheduleParser.get_time():
+        for time_str in await schedule_parser.get_time():
             time_list = time_str.split(" - ")
 
             hour_start, minute_start = map(int, time_list[0].split(":"))
@@ -76,7 +77,7 @@ async def init_scheduler_jobs() -> None:
 
         try:
             scheduler.add_job(
-                scheduleParser.updateTable,
+                schedule_parser.updateTable,
                 "interval",
                 name="Update table",
                 replace_existing=True,

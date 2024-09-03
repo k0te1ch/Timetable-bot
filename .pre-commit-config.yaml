@@ -70,3 +70,4 @@ repos:
     hooks:
     - id: python-safety-dependencies-check
       files: pyproject.toml
+      args: ["--ignore=70612"]

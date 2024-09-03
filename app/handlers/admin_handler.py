@@ -5,14 +5,10 @@ from filters.dispatcherFilters import IsAdmin, IsPrivate
 from loguru import logger
 from services.context import context
 from services.keyboards import keyboards
-from utils.botMethods import get_logs, shutdown_bot
+from utils.bot_methods import get_logs, shutdown_bot
 
 # TODO: add callback fabric
-<<<<<<<< HEAD:app/handlers/admin_handler.py
 router = Router(name="admin_handler")
-========
-router = Router(name="admin_panel")
->>>>>>>> b84f6c69106e06e40db34ece7337719f8e2716cf:app/handlers/admin_panel.py
 router.message.filter(IsPrivate, IsAdmin)
 
 

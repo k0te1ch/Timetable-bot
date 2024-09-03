@@ -44,6 +44,7 @@ async def _menu(msg: Message, callback: CallbackQuery, username: str, state: FSM
 @router.message(F.text, Command("menu"))
 async def menu(msg: Message, username: str, state: FSMContext, db, existUser: bool) -> None:
     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Called <b>/menu</b> command")
+
     await _menu(msg=msg, callback=None, username=username, state=state, db=db, existUser=existUser)
 
 

@@ -88,3 +88,13 @@ async def form_step(
     step_text = step_text1 + step_texts[indexStep]
     await callback.message.edit_text(step_text, reply_markup=keyboard.as_markup(resize_keyboard=True))
     await callback.answer(callback_text)
+
+
+async def next_step(state_cls: StatesGroup, state: FSMContext) -> None:
+    steps: tuple[str] = state_cls.__state_names__
+    current_state: str = await state.get_state()
+    index_state: int = steps.index(current_state) + 1
+    if index_state >= len(steps):
+        return await state.clear()
+
+    return await state.set_state(steps[index_state])

@@ -8,10 +8,9 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 
 ### Requirements
 
-- Python 3.10
-- Poetry 1.8 или новее
+- Python 3.12
+- Poetry 1.8.3 или новее
 - Docker
-- Make
 
 ### Installation
 
@@ -27,8 +26,9 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 
     ```bash
     poetry shell
-    make requirements
-    make docker-up
+    poetry update
+    docker-compose --env-file .env build
+    docker-compose up -d --force-recreate
     ```
 
 ### First Run
@@ -36,20 +36,15 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 Execute the following commands:
 
 ```bash
-make async-makemigrations
-make async-migrate
-make docker-run
+docker exec -it bot-container bash
+python app/bot.py makemigrations -s False
+python app/bot.py migrate -s False
+exit
 ```
 
 ## 🙋‍♂️ FAQs
 
 - **I encountered an error using Docker, the bot keeps restarting, what should I do?** This option is possible if the settings are incorrect .the env file. In this case, delete the generated volumes and containers in Docker, then recheck the env, run poetry update again in the console and try again.
-
-  ```bash
-  docker-compose down -v
-  poetry update
-  ```
-
 - **Why is Docker not starting?** - Check whether virtualization mode is enabled in the BIOS; Hyper-V, WSL2 in Windows system components (or look for a specific error on the Internet).
 - **How do I create my own bot and get a token?** - Use [BotFather](https://t.me/BotFather)
 - **How do I view the chat id for feedback?** - Forward the message from your channel/a feedback bot in [getMyID](https://t.me/getmyid_bot) or use [telegram](https://web.telegram.org/a) in the Web version, the ID will be specified in the link of the channel.

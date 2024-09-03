@@ -8,8 +8,8 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 
 ### Requirements
 
-- Python 3.10
-- Poetry 1.8 или новее
+- Python 3.12
+- Poetry 1.8.3 или новее
 - Docker
 
 ### Installation

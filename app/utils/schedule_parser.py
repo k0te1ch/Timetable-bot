@@ -15,6 +15,8 @@ from database.services.group import bifurcation_group
 from loguru import logger
 from lxml import etree
 
+# FIXME: bot-container       | sys:1: SAWarning: Multiple rows returned with uselist=False for eagerly-loaded attribute 'User.settings'
+# TODO: Логотип в логах при запуске
 # TODO: Подключить сюда redis
 # TODO: Объединить выходные (объединить одинаковые дни)
 # TODO: Оптимизировать получение расписания на неделю (ну очень долго)

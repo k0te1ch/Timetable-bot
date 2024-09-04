@@ -12,7 +12,7 @@ async def create_settings(session: AsyncSession, user: User) -> Settings:
     :return: `Settings` or `None`
     """
 
-    settings = Settings(user=user)
+    settings = Settings(user=user, notifications=True)
 
     session.add(settings)
     await session.flush()

@@ -16,6 +16,7 @@ class User(TimestampMixin, SerializerMixin, db.Model):
     last_name: Mapped[str] = mapped_column(String, nullable=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), nullable=True)
+    settings_id: Mapped[int] = mapped_column(ForeignKey("settings.id"), nullable=False)
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     group: Mapped["Group"] = relationship("Group", back_populates="users")

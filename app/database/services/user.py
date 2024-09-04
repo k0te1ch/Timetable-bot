@@ -1,7 +1,9 @@
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from ..models import Group, Role, Settings, User
+from .settings import create_settings
 
 # TODO: Аннотации
 
@@ -19,11 +21,16 @@ async def get_user_by_telegram_id(session: AsyncSession, telegram_id: int) -> Us
     :return: `User` or `None`
     """
 
-    stmt = select(User).where(User.telegram_id == telegram_id)
+    stmt = select(User).options(joinedload(User.settings)).filter(User.telegram_id == telegram_id)
 
     result = await session.execute(stmt)
 
-    return result.scalars().first()
+    result = result.scalars().first()
+
+    if result.settings is None:
+        result.settings = await create_settings(session, result)
+
+    return result
 
 
 async def create_user(
@@ -64,7 +71,12 @@ async def create_user(
         role=role,
         group=group,
     )
+
     session.add(obj)
+    settings = Settings(user=obj)
+    session.add(settings)
+    obj.settings = settings
+
     await session.flush()
     await session.refresh(obj)
     await session.commit()
@@ -111,24 +123,18 @@ async def switch_notify_for_user(session: AsyncSession, user_id: int) -> bool:
 
     :param session: An `AsyncSession` object
     :param user_id: User ID
-    :return: `bool` indicating whether the user was found and the notify parameter was successfully toggled
+    :return: `bool` the notify parameter
     """
 
     user = await get_user_by_telegram_id(session, user_id)
     if user is None:
         return False
 
-    stmt = (
-        update(Settings)
-        .where(Settings.user_id == user_id)
-        .values(notifications=not user.settings.notifications)
-        .execution_options(synchronize_session="fetch")
-    )
-    result = await session.execute(stmt)
+    stmt = update(Settings).where(Settings.user == user).values(notifications=not user.settings.notifications)
 
-    if result.rowcount == 0:
-        return False
+    await session.execute(stmt)
 
+    await session.refresh(user)
     await session.commit()
 
-    return True
+    return user.settings.notifications

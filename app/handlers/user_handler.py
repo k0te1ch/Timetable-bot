@@ -35,5 +35,5 @@ async def notify_user(callback: CallbackQuery, username: str, db) -> None:
 
     async with db.session() as session:
         async with session.begin():
-            await switch_notify_for_user(session=session, user_id=callback.from_user.id)
-            await callback.answer()
+            result = await switch_notify_for_user(session=session, user_id=callback.from_user.id)
+            await callback.answer("Уведомления включены" if result else "Уведомления выключены")

@@ -27,7 +27,7 @@ async def get_user_by_telegram_id(session: AsyncSession, telegram_id: int) -> Us
 
     result = result.scalars().first()
 
-    if result is not None or result.settings is None:
+    if result is not None and result.settings is None:
         result.settings = await create_settings(session, result)
 
     return result
@@ -73,7 +73,9 @@ async def create_user(
     )
 
     session.add(obj)
-    settings = Settings(user=obj)
+
+    settings = Settings(user=obj, notifications=True)
+
     session.add(settings)
     obj.settings = settings
 

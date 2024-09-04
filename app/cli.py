@@ -59,16 +59,18 @@ def cli(ctx):
 
 @logger.catch
 async def _run():
-    logger.info("Connecting to Telegram...")
-
-    me = await bot.bot.get_me()
-    logger.opt(colors=True).info(f"Bot running as <light-blue>@{me.username}</light-blue>")
+    await init_schedule_parser(schedule_parser)
 
     if ENABLE_APSCHEDULER is True:
         scheduler.start()
         scheduler.remove_all_jobs()
         await init_scheduler_jobs()
         logger.success("Schedulers init jobs configurated and scheduler started!")
+
+    logger.info("Connecting to Telegram...")
+
+    me = await bot.bot.get_me()
+    logger.opt(colors=True).info(f"Bot running as <light-blue>@{me.username}</light-blue>")
 
     # Добавляем команды в бота
     from aiogram.types import BotCommandScopeAllPrivateChats
@@ -79,7 +81,6 @@ async def _run():
         scope=BotCommandScopeAllPrivateChats(),
     )
 
-    await init_schedule_parser(schedule_parser)
     logger.success("Bot polling started!")
     await bot.dp.start_polling(bot.bot, skip_updates=SKIP_UPDATES)
 

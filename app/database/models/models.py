@@ -1,6 +1,6 @@
 from database.database import db
 from database.models.mixins import TimestampMixin
-from sqlalchemy import Boolean, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy_serializer import SerializerMixin
 
@@ -8,9 +8,9 @@ from sqlalchemy_serializer import SerializerMixin
 class User(TimestampMixin, SerializerMixin, db.Model):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    vk_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    vk_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     middle_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -20,7 +20,7 @@ class User(TimestampMixin, SerializerMixin, db.Model):
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     group: Mapped["Group"] = relationship("Group", back_populates="users")
-    settings: Mapped["Settings"] = relationship("Settings", back_populates="user")
+    settings: Mapped["Settings"] = relationship("Settings", back_populates="user", uselist=False)
 
 
 class Direction(SerializerMixin, db.Model):
@@ -91,7 +91,7 @@ class Course(SerializerMixin, db.Model):
 class Settings(SerializerMixin, db.Model):
     __tablename__ = "settings"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     notifications: Mapped[bool] = mapped_column(Boolean, default=True)
 
     user: Mapped["User"] = relationship("User", back_populates="settings")

@@ -2,7 +2,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from ..models import Group, Role, Settings, User
+from ..models import Direction, Group, Profile, Role, Settings, User
 from .settings import create_settings
 
 # TODO: Аннотации
@@ -113,7 +113,18 @@ async def get_users_for_notify(session: AsyncSession) -> list[User]:
     :return: `List[User]`
     """
 
-    stmt = select(User).where(User.settings.notifications)
+    stmt = (
+        select(User)
+        .join(User.settings)
+        .options(
+            joinedload(User.settings),
+            joinedload(User.group)
+            .joinedload(Group.profile)
+            .joinedload(Profile.direction)
+            .joinedload(Direction.course),
+        )
+        .filter(Settings.notifications)
+    )
 
     result = await session.execute(stmt)
     return result.scalars().all()

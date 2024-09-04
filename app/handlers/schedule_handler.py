@@ -24,31 +24,29 @@ async def next_para(time: str) -> None:
         async with session.begin():
             users: list[User] = await get_users_for_notify(session)
 
-            for user in users:
-                # TODO: Если выходной - не присылать каждую пару о паре, объединить воедино
+    for user in users:
 
-                import locale
+        import locale
 
-                locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
+        locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
 
-                selected_day: datetime = datetime.now(TIMEZONE)
-                current_week: str = "Знаменатель" if selected_day.isocalendar().week % 2 == 0 else "Числитель"
+        selected_day: datetime = datetime.now(TIMEZONE)
+        current_week: str = (
+            "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"
+        )  # FIXME: Костыль
 
-                subject: str | None = schedule_parser.getScheduleForTime(
-                    user.group.profile.direction.course.name,
-                    user.direction.name,
-                    user.profile.name,
-                    user.group.name,
-                    current_week,
-                    selected_day.strftime("%A").capitalize(),
-                    time,
-                )
-                if subject is None:
-                    logger.debug(
-                        f"Сообщение не отправлено за 5 минут до начала пары - у пользователя {user.id} нет пары"
-                    )
-                await bot.send_message(user.id, subject)
-                logger.debug(f"Отправлено сообщение пользователю {user.id} за 5 минут до начала пары")
+        subject: str | None = await schedule_parser.getScheduleForTime(
+            user.group,
+            current_week,
+            selected_day.strftime("%A").capitalize(),
+            time,
+        )
+        if subject is None:
+            logger.debug(
+                f"Сообщение не отправлено за 5 минут до начала пары - у пользователя {user.telegram_id} нет пары"
+            )
+        await bot.send_message(user.telegram_id, subject)
+        logger.debug(f"Отправлено сообщение пользователю {user.telegram_id} за 5 минут до начала пары")
     logger.debug("Все сообщения отправлены")
 
 
@@ -64,27 +62,24 @@ async def next_day() -> None:
         async with session.begin():
             users: list[User] = await get_users_for_notify(session)
 
-            for user in users:
+    for user in users:
 
-                import locale
+        import locale
 
-                locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
+        locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")  # FIXME: костыль
 
-                selected_day: datetime = datetime.now(TIMEZONE) + timedelta(hours=2)
-                current_week: str = (
-                    "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"
-                )  # FIXME: костыль
+        selected_day: datetime = datetime.now(TIMEZONE) + timedelta(hours=2)
+        current_week: str = (
+            "Знаменатель" if selected_day.isocalendar().week % 2 != 0 else "Числитель"
+        )  # FIXME: костыль
 
-                subject = schedule_parser.getScheduleForDay(
-                    user.group.profile.direction.course.name,
-                    user.direction.name,
-                    user.profile.name,
-                    user.group.name,
-                    current_week,
-                    selected_day.strftime("%A").capitalize(),
-                )
-                await bot.send_message(user.id, subject)
-                logger.debug(f"Отправлено сообщение пользователю {user.id} на следующий день")
+        subject = await schedule_parser.getScheduleForDay(
+            user.group,
+            current_week,
+            selected_day.strftime("%A").capitalize(),
+        )
+        await bot.send_message(user.telegram_id, subject)
+        logger.debug(f"Отправлено сообщение пользователю {user.telegram_id} на следующий день")
     logger.debug("Все сообщения отправлены")
 
 

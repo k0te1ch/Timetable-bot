@@ -117,6 +117,7 @@ class ScheduleParser:
                 self._faculty = await get_faculty_by_id(session, self._faculty_id)
         await self._toObject(await self._parse(await self._downloadTable()))
         await self._makeFreeAudiences()
+        logger.success("Init schedule parser!")
 
     async def updateTable(self) -> None:
         """
@@ -336,15 +337,19 @@ class ScheduleParser:
         self._tableObj = objects
         return objects
 
-    def getScheduleForTime(self, course, direction, profile, group, numerator, day, time) -> str | None:
+    async def getScheduleForTime(self, group, numerator, day, time) -> str | None:
         tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
 
         # Проверка на Воскресенье
         if day == "Воскресенье":
             return None
 
+        profile = group.profile
+        direction = profile.direction
+        course = direction.course
+
         # Проходим по ключам, чтобы добраться до расписания
-        for key in (course, direction, profile, group, numerator, day):
+        for key in (course.name, direction.name, profile.name, group.name, numerator, day):
             if key in tempObj:
                 tempObj = tempObj[key]
             else:

@@ -20,6 +20,7 @@ class ru:
     bot_commands: list = [
         ("Выключить бота", "restart_bot"),
         ("Прислать лог-файлы", "send_logs"),
+        ("Создать задачу", "create_job"),
     ]
 
 
@@ -38,4 +39,8 @@ class en:
     admin_panel_open: str = "Admin panel"
     admin_panel_close: str = "Admin panel closed"
     admin_panel_main: list = [("Bot", "bot")]
-    bot_commands: list = [("Turn off the bot", "restart_bot"), ("Send log-files", "send_logs")]
+    bot_commands: list = [
+        ("Turn off the bot", "restart_bot"),
+        ("Send log-files", "send_logs"),
+        ("Create job", "create_job"),
+    ]

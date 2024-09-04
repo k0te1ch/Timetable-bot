@@ -30,9 +30,11 @@ async def feedback_callback(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(StateFilter(Feedback.message))
-async def feedback_message(message: Message, state: FSMContext):
+async def feedback_message(message: Message, state: FSMContext, username: str):
     await message.forward(ADMIN_CHAT_ID)
-    logger.debug(f"Переслано сообщение от пользователя {message.chat.id} в чат {ADMIN_CHAT_ID}")
+    logger.debug(
+        f"[<y>{username}</y>]: Переслано сообщение от пользователя {message.from_user.id} в чат {ADMIN_CHAT_ID}"
+    )
     await message.answer("Спасибо за обратную связь!")
     await state.clear()
 

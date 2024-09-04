@@ -60,25 +60,26 @@ async def back(callback: CallbackQuery, language: str, username: str):
     )
 
 
-@router.callback_query(F.data == "create_job")
-async def create_job(callback: CallbackQuery, username: str):
-    logger.opt(colors=True).debug(f"[<y>{username}</y>]: Create job")
+# FIXME: Она отсылает всем уведомление, а должна только 1 админу, кто нажал
+# @router.callback_query(F.data == "create_job")
+# async def create_job(callback: CallbackQuery, username: str):
+#     logger.opt(colors=True).debug(f"[<y>{username}</y>]: Create job")
 
-    from datetime import datetime, timedelta
+#     from datetime import datetime, timedelta
 
-    from apscheduler.triggers.date import DateTrigger
-    from config import TIMEZONE
-    from handlers.schedule_handler import next_day
-    from services import scheduler
+#     from apscheduler.triggers.date import DateTrigger
+#     from config import TIMEZONE
+#     from handlers.schedule_handler import next_day
+#     from services import scheduler
 
-    now = datetime.now() + timedelta(seconds=10)
+#     now = datetime.now() + timedelta(seconds=10)
 
-    scheduler.add_job(
-        next_day,
-        trigger=DateTrigger(run_date=now),
-        name="10sec_admin",
-        replace_existing=True,
-        timezone=TIMEZONE,
-    )
+#     scheduler.add_job(
+#         next_day,
+#         trigger=DateTrigger(run_date=now),
+#         name="10sec_admin",
+#         replace_existing=True,
+#         timezone=TIMEZONE,
+#     )
 
-    return await callback.answer("Задача создана и будет выполнена через 10 секунд")
+#     return await callback.answer("Задача создана и будет выполнена через 10 секунд")

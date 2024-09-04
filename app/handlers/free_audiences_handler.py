@@ -20,7 +20,7 @@ router.message.filter(IsPrivate)
 async def free_audiences(callback: CallbackQuery, state: FSMContext):
     await state.set_state(FreeAudiences.day)
 
-    free_audiences = schedule_parser.getFreeAudiencesObj()
+    free_audiences = await schedule_parser.getFreeAudiencesObj()
     await state.update_data(free_audiences=free_audiences, free_audiences_glob=free_audiences)
 
     keyboard = InlineKeyboardBuilder()
@@ -90,5 +90,5 @@ async def get_numerator(callback: CallbackQuery, state: FSMContext, username: st
     numerator = list(state_data["free_audiences"].keys())[int(callback.data[len("numerator_") :])]
     await callback.answer("Готово!")
     await callback.message.edit_text(
-        schedule_parser.getFreeAudiences(state_data["day"], state_data["time"], numerator)
+        await schedule_parser.getFreeAudiences(state_data["day"], state_data["time"], numerator)
     )

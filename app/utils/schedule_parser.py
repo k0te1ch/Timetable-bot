@@ -338,7 +338,7 @@ class ScheduleParser:
         return objects
 
     async def getScheduleForTime(self, group, numerator, day, time) -> str | None:
-        tempObj: OrderedDict[any] = copy.deepcopy(self._tableObj)
+        tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)
 
         # Проверка на Воскресенье
         if day == "Воскресенье":
@@ -355,25 +355,28 @@ class ScheduleParser:
             else:
                 return None
 
-        # Удаление лишних значений "None" в начале и в конце расписания
-        while tempObj and tempObj[next(iter(tempObj))].is_window:
-            tempObj.pop(next(iter(tempObj)))
-        while tempObj and tempObj[next(reversed(tempObj))].is_window:
-            tempObj.pop(next(reversed(tempObj)))
+        # Проверка на выходной
+        if all(subject.is_window for subject in tempObj.values()):
+            return None
 
+        # Удаление лишних значений "None" в начале и в конце расписания
+        tempObj = self._trim_schedule(tempObj)
+
+        # Приведение времени в нужный формат
         for time_tmp in tempObj.keys():
             if time == time_tmp.split(" - ")[0]:
                 time = time_tmp
 
         # Получаем расписание на указанное время
-        subject = tempObj.get(time, "Пары нет")
-        if subject == "Пары нет":
+        subject = tempObj.get(time, None)
+        if subject is None:
             return None
 
         # Формирование результата
-        subject = subject.to_text()
+        subject_text = subject.to_text()
 
-        return f"{day}, ({numerator})\n\n{time} => {subject}"
+        # Возвращаем отформатированное расписание
+        return f"{day} ({numerator})\n\n{time} => {subject_text}"
 
     async def getScheduleForDay(self, group: Group, numerator, day):
         tempObj: OrderedDict[Any] = copy.deepcopy(self._tableObj)

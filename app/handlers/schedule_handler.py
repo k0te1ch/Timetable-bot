@@ -45,8 +45,9 @@ async def next_para(time: str) -> None:
             logger.debug(
                 f"Сообщение не отправлено за 5 минут до начала пары - у пользователя {user.telegram_id} нет пары"
             )
-        await bot.send_message(user.telegram_id, subject)
-        logger.debug(f"Отправлено сообщение пользователю {user.telegram_id} за 5 минут до начала пары")
+        else:
+            await bot.send_message(user.telegram_id, subject)
+            logger.debug(f"Отправлено сообщение пользователю {user.telegram_id} за 5 минут до начала пары")
     logger.debug("Все сообщения отправлены")
 
 

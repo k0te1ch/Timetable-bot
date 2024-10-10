@@ -26,9 +26,9 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 
     ```bash
     poetry shell
-    poetry update
-    docker-compose --env-file .env build
-    docker-compose up -d --force-recreate
+    poetry install
+    docker compose --env-file .env build
+    docker compose up -d
     ```
 
 ### First Run
@@ -36,10 +36,10 @@ Timetable-bot is a telegram bot designed to send a schedule. It provides users w
 Execute the following commands:
 
 ```bash
-docker exec -it bot-container bash
-python app/bot.py makemigrations -s False
+poetry shell
 python app/bot.py migrate -s False
-exit
+docker compose --env-file .env build
+docker compose up -d
 ```
 
 ## 🙋‍♂️ FAQs
